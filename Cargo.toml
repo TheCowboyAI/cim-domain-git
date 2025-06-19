@@ -1,0 +1,70 @@
+[package]
+name = "cim-domain-git"
+version = "0.1.0"
+edition = "2021"
+authors = ["The Cowboy AI Team"]
+description = "Git domain module for CIM - provides Git repository introspection and graph extraction capabilities"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/thecowboyai/alchemist"
+keywords = ["git", "domain", "cim", "event-sourcing", "graph"]
+categories = ["development-tools", "data-structures"]
+
+[dependencies]
+# Core CIM dependencies
+cim-domain = { path = "../cim-domain" }
+cim-infrastructure = { path = "../cim-infrastructure" }
+cim-ipld = { path = "../cim-ipld" }
+cim-subject = { path = "../cim-subject" }
+
+# Domain dependencies
+cim-domain-graph = { path = "../cim-domain-graph" }
+cim-domain-document = { path = "../cim-domain-document" }
+cim-domain-agent = { path = "../cim-domain-agent" }
+
+# Git functionality
+git2 = "0.19"
+# gix = { version = "0.68", features = ["max-performance"] } # Temporarily disabled due to build issues
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+async-trait = "0.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging
+tracing = "0.1"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# UUID generation
+uuid = { version = "1.11", features = ["v4", "serde"] }
+
+# Collections
+indexmap = "2.7"
+
+[dev-dependencies]
+# Testing
+tokio-test = "0.4"
+tempfile = "3.14"
+pretty_assertions = "1.4"
+proptest = "1.6"
+
+# Fixtures
+once_cell = "1.20"
+
+# Examples
+tracing-subscriber = "0.3"
+
+[features]
+default = []
+# Enable GitHub MCP integration
+github-mcp = []
+# Enable advanced Git analysis features
+advanced-analysis = []
