@@ -3,6 +3,10 @@
 //! This module contains the implementation of command handlers
 //! that process commands and generate events.
 
+mod cqrs_adapter;
+
+pub use cqrs_adapter::*;
+
 use crate::GitDomainError;
 use crate::aggregate::{Repository, RepositoryId};
 use crate::commands::{ExtractCommitGraph, ExtractDependencyGraph};

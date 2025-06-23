@@ -3,8 +3,9 @@
 //! Commands represent intentions to change the state of the Git domain.
 //! They are validated and processed by command handlers.
 
-use crate::aggregate::RepositoryId;
+use crate::aggregate::{Repository, RepositoryId};
 use crate::value_objects::{BranchName, CommitHash, FilePath, RemoteUrl, TagName};
+use cim_domain::{Command, EntityId};
 use serde::{Deserialize, Serialize};
 
 /// Clone a repository from a remote URL
@@ -26,6 +27,14 @@ pub struct CloneRepository {
     pub depth: Option<u32>,
 }
 
+impl Command for CloneRepository {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        self.repository_id.map(|id| EntityId::from_uuid(*id.as_uuid()))
+    }
+}
+
 /// Analyze a specific commit
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalyzeCommit {
@@ -40,6 +49,14 @@ pub struct AnalyzeCommit {
 
     /// Whether to extract dependencies
     pub extract_dependencies: bool,
+}
+
+impl Command for AnalyzeCommit {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
 }
 
 /// Extract the commit graph from a repository
@@ -61,6 +78,14 @@ pub struct ExtractCommitGraph {
     pub include_tags: bool,
 }
 
+impl Command for ExtractCommitGraph {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Extract file dependency graph
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractDependencyGraph {
@@ -80,6 +105,14 @@ pub struct ExtractDependencyGraph {
     pub language: Option<String>,
 }
 
+impl Command for ExtractDependencyGraph {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Create a new branch
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateBranch {
@@ -96,6 +129,14 @@ pub struct CreateBranch {
     pub checkout: bool,
 }
 
+impl Command for CreateBranch {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Delete a branch
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeleteBranch {
@@ -107,6 +148,14 @@ pub struct DeleteBranch {
 
     /// Force deletion even if not merged
     pub force: bool,
+}
+
+impl Command for DeleteBranch {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
 }
 
 /// Create a tag
@@ -128,6 +177,14 @@ pub struct CreateTag {
     pub annotated: bool,
 }
 
+impl Command for CreateTag {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Analyze repository structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalyzeRepository {
@@ -144,6 +201,14 @@ pub struct AnalyzeRepository {
     pub calculate_statistics: bool,
 }
 
+impl Command for AnalyzeRepository {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Fetch updates from remote
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FetchRemote {
@@ -158,6 +223,14 @@ pub struct FetchRemote {
 
     /// Whether to prune deleted branches
     pub prune: bool,
+}
+
+impl Command for FetchRemote {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
 }
 
 /// Analyze file history
@@ -179,6 +252,14 @@ pub struct AnalyzeFileHistory {
     pub follow_renames: bool,
 }
 
+impl Command for AnalyzeFileHistory {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Compare branches
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompareBranches {
@@ -193,6 +274,14 @@ pub struct CompareBranches {
 
     /// Whether to include file diffs
     pub include_diffs: bool,
+}
+
+impl Command for CompareBranches {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
 }
 
 /// Search repository content
@@ -217,6 +306,14 @@ pub struct SearchRepository {
     pub max_results: Option<usize>,
 }
 
+impl Command for SearchRepository {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
+}
+
 /// Integrate with GitHub via MCP
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitHubIntegration {
@@ -228,6 +325,14 @@ pub struct GitHubIntegration {
 
     /// Operations to perform
     pub operations: Vec<GitHubOperation>,
+}
+
+impl Command for GitHubIntegration {
+    type Aggregate = Repository;
+
+    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+    }
 }
 
 /// GitHub operations
