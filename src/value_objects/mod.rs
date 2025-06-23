@@ -7,6 +7,33 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Represents a Git commit hash
+///
+/// Commit hashes must be valid hexadecimal strings with a minimum length
+/// of 7 characters (for abbreviated hashes) up to 40 characters for full
+/// SHA-1 hashes or 64 characters for SHA-256 hashes.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::value_objects::CommitHash;
+///
+/// // Create from full SHA-1 hash
+/// let full_hash = CommitHash::new("1234567890abcdef1234567890abcdef12345678").unwrap();
+/// assert_eq!(full_hash.as_str(), "1234567890abcdef1234567890abcdef12345678");
+///
+/// // Create from abbreviated hash
+/// let short_hash = CommitHash::new("abc123def").unwrap();
+/// assert_eq!(short_hash.short(), "abc123d");
+///
+/// // Hashes are normalized to lowercase
+/// let mixed_case = CommitHash::new("ABC123DEF").unwrap();
+/// assert_eq!(mixed_case.as_str(), "abc123def");
+///
+/// // Invalid hashes are rejected
+/// assert!(CommitHash::new("short").is_err()); // Too short
+/// assert!(CommitHash::new("not-hex").is_err()); // Invalid characters
+/// assert!(CommitHash::new("").is_err()); // Empty
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct CommitHash(String);
 
@@ -48,6 +75,33 @@ impl fmt::Display for CommitHash {
 }
 
 /// A Git branch name
+///
+/// Branch names must follow Git's naming conventions:
+/// - Cannot be empty
+/// - Cannot contain ".."
+/// - Cannot end with "." or "/"
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::value_objects::BranchName;
+///
+/// // Valid branch names
+/// let main = BranchName::new("main").unwrap();
+/// assert!(main.is_default());
+///
+/// let feature = BranchName::new("feature/new-feature").unwrap();
+/// assert!(!feature.is_default());
+///
+/// let bugfix = BranchName::new("bugfix/issue-123").unwrap();
+/// assert_eq!(bugfix.as_str(), "bugfix/issue-123");
+///
+/// // Invalid branch names
+/// assert!(BranchName::new("").is_err()); // Empty
+/// assert!(BranchName::new("branch..name").is_err()); // Contains ".."
+/// assert!(BranchName::new("branch/").is_err()); // Ends with "/"
+/// assert!(BranchName::new("branch.").is_err()); // Ends with "."
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct BranchName(String);
 
@@ -63,8 +117,11 @@ impl BranchName {
             ));
         }
 
-        // Git branch name restrictions
-        if name.contains("..") || name.ends_with('.') || name.ends_with('/') {
+        // Security validation to prevent command injection
+        crate::security::validate_branch_name(&name)?;
+
+        // Additional Git branch name restrictions
+        if name.ends_with('.') || name.ends_with('/') {
             return Err(crate::GitDomainError::GitOperationFailed(format!(
                 "Invalid branch name: {name}"
             )));
@@ -91,6 +148,36 @@ impl fmt::Display for BranchName {
 }
 
 /// A Git remote URL
+///
+/// Remote URLs can be in various formats including HTTPS, SSH, and Git protocols.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::value_objects::RemoteUrl;
+///
+/// // HTTPS URLs
+/// let https_url = RemoteUrl::new("https://github.com/user/repo.git").unwrap();
+/// assert!(https_url.is_github());
+/// assert_eq!(https_url.repository_name(), Some("repo"));
+///
+/// // SSH URLs
+/// let ssh_url = RemoteUrl::new("git@github.com:user/repo.git").unwrap();
+/// assert!(ssh_url.is_github());
+/// assert_eq!(ssh_url.repository_name(), Some("repo"));
+///
+/// // Git protocol
+/// let git_url = RemoteUrl::new("git://github.com/user/repo.git").unwrap();
+/// assert!(git_url.is_github());
+///
+/// // Repository name extraction works with or without .git suffix
+/// let no_suffix = RemoteUrl::new("https://github.com/user/repository").unwrap();
+/// assert_eq!(no_suffix.repository_name(), Some("repository"));
+///
+/// // Invalid URLs
+/// assert!(RemoteUrl::new("").is_err());
+/// assert!(RemoteUrl::new("not-a-url").is_err());
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RemoteUrl(String);
 
@@ -106,18 +193,8 @@ impl RemoteUrl {
             ));
         }
 
-        // Check for common Git URL patterns
-        if !url.starts_with("http://")
-            && !url.starts_with("https://")
-            && !url.starts_with("git://")
-            && !url.starts_with("ssh://")
-            && !url.contains('@')
-        // git@github.com:user/repo.git
-        {
-            return Err(crate::GitDomainError::GitOperationFailed(format!(
-                "Invalid Git remote URL: {url}"
-            )));
-        }
+        // Security validation to prevent command injection
+        crate::security::validate_remote_url(&url)?;
 
         Ok(Self(url))
     }
@@ -148,6 +225,29 @@ impl fmt::Display for RemoteUrl {
 }
 
 /// Git author information
+///
+/// Represents the author or committer of a Git commit.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::value_objects::AuthorInfo;
+///
+/// // Create author info
+/// let author = AuthorInfo::new("Jane Doe", "jane@example.com");
+/// assert_eq!(author.name, "Jane Doe");
+/// assert_eq!(author.email, "jane@example.com");
+///
+/// // Display format follows Git convention
+/// assert_eq!(author.to_string(), "Jane Doe <jane@example.com>");
+///
+/// // Can be created with any string types
+/// let author2 = AuthorInfo::new(
+///     String::from("John Smith"),
+///     String::from("john@example.com")
+/// );
+/// assert_eq!(author2.name, "John Smith");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct AuthorInfo {
     /// Author name
@@ -209,6 +309,38 @@ impl fmt::Display for TagName {
 }
 
 /// File path within a Git repository
+///
+/// File paths are normalized to use forward slashes regardless of platform.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::value_objects::FilePath;
+///
+/// // Create a file path
+/// let path = FilePath::new("src/lib.rs").unwrap();
+/// assert_eq!(path.as_str(), "src/lib.rs");
+/// assert_eq!(path.file_name(), Some("lib.rs"));
+/// assert_eq!(path.directory(), Some("src"));
+/// assert_eq!(path.extension(), Some("rs"));
+///
+/// // Paths are normalized
+/// let windows_path = FilePath::new("src\\main\\java\\App.java").unwrap();
+/// assert_eq!(windows_path.as_str(), "src/main/java/App.java");
+///
+/// // Complex paths
+/// let complex = FilePath::new("path/to/file.tar.gz").unwrap();
+/// assert_eq!(complex.file_name(), Some("file.tar.gz"));
+/// assert_eq!(complex.extension(), Some("gz"));
+///
+/// // Root level files
+/// let root_file = FilePath::new("README.md").unwrap();
+/// assert_eq!(root_file.file_name(), Some("README.md"));
+/// assert_eq!(root_file.directory(), None);
+///
+/// // Invalid paths
+/// assert!(FilePath::new("").is_err());
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct FilePath(String);
 
@@ -223,8 +355,11 @@ impl FilePath {
             ));
         }
 
+        // Security validation to prevent path traversal
+        let validated_path = crate::security::validate_path(&path)?;
+
         // Normalize path separators
-        let normalized = path.replace('\\', "/");
+        let normalized = validated_path.to_string_lossy().replace('\\', "/");
 
         Ok(Self(normalized))
     }

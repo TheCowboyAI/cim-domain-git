@@ -12,6 +12,26 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 /// Unique identifier for a repository
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::aggregate::RepositoryId;
+/// use uuid::Uuid;
+///
+/// // Create a new repository ID
+/// let id = RepositoryId::new();
+///
+/// // Create from existing UUID
+/// let uuid = Uuid::new_v4();
+/// let id_from_uuid = RepositoryId::from_uuid(uuid);
+/// assert_eq!(id_from_uuid.as_uuid(), &uuid);
+///
+/// // IDs can be compared
+/// let id1 = RepositoryId::new();
+/// let id2 = RepositoryId::new();
+/// assert_ne!(id1, id2);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RepositoryId(Uuid);
 
@@ -39,6 +59,53 @@ impl Default for RepositoryId {
 }
 
 /// Repository aggregate root
+///
+/// The Repository aggregate maintains the consistency boundary for all
+/// repository-related operations including cloning, branch management,
+/// and commit analysis.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::aggregate::Repository;
+/// use cim_domain_git::value_objects::RemoteUrl;
+///
+/// // Create a new repository
+/// let mut repo = Repository::new("awesome-project".to_string());
+/// assert_eq!(repo.metadata.name, "awesome-project");
+/// assert_eq!(repo.version, 0);
+///
+/// // Clone the repository
+/// let remote_url = RemoteUrl::new("https://github.com/example/repo.git").unwrap();
+/// let events = repo.clone_repository(remote_url, "/workspace/repo".to_string()).unwrap();
+///
+/// // Repository state is updated
+/// assert!(repo.remote_url.is_some());
+/// assert_eq!(repo.local_path, Some("/workspace/repo".to_string()));
+/// assert_eq!(repo.version, 1);
+/// ```
+///
+/// ## Event Sourcing
+///
+/// ```
+/// use cim_domain_git::aggregate::Repository;
+/// use cim_domain_git::events::{GitDomainEvent, RepositoryCloned};
+/// use cim_domain_git::value_objects::RemoteUrl;
+/// use chrono::Utc;
+///
+/// let mut repo = Repository::new("test-repo".to_string());
+///
+/// // Apply an event
+/// let event = GitDomainEvent::RepositoryCloned(RepositoryCloned {
+///     repository_id: repo.id,
+///     remote_url: RemoteUrl::new("https://github.com/test/repo.git").unwrap(),
+///     local_path: "/tmp/test".to_string(),
+///     timestamp: Utc::now(),
+/// });
+///
+/// repo.apply_event(&event).unwrap();
+/// assert_eq!(repo.version, 1);
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repository {
     /// Unique identifier

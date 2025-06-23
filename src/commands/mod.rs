@@ -9,6 +9,37 @@ use cim_domain::{Command, EntityId};
 use serde::{Deserialize, Serialize};
 
 /// Clone a repository from a remote URL
+///
+/// This command initiates the cloning of a Git repository from a remote
+/// location to a local path. It supports shallow cloning and branch selection.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::commands::CloneRepository;
+/// use cim_domain_git::value_objects::{RemoteUrl, BranchName};
+/// use cim_domain_git::aggregate::RepositoryId;
+///
+/// // Clone a new repository
+/// let clone_cmd = CloneRepository {
+///     repository_id: None, // Will create new repository
+///     remote_url: RemoteUrl::new("https://github.com/rust-lang/rust.git").unwrap(),
+///     local_path: "/workspace/rust".to_string(),
+///     branch: None, // Use default branch
+///     depth: None, // Full clone
+/// };
+///
+/// // Clone with specific branch and shallow depth
+/// let shallow_clone = CloneRepository {
+///     repository_id: Some(RepositoryId::new()),
+///     remote_url: RemoteUrl::new("https://github.com/tokio-rs/tokio.git").unwrap(),
+///     local_path: "/tmp/tokio".to_string(),
+///     branch: Some(BranchName::new("v1.0.0").unwrap()),
+///     depth: Some(1), // Only latest commit
+/// };
+///
+/// assert_eq!(shallow_clone.local_path, "/tmp/tokio");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CloneRepository {
     /// Repository ID (if creating new) or existing ID
@@ -36,6 +67,40 @@ impl Command for CloneRepository {
 }
 
 /// Analyze a specific commit
+///
+/// This command triggers analysis of a specific commit, including
+/// file changes, dependencies, and other metadata extraction.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::commands::AnalyzeCommit;
+/// use cim_domain_git::aggregate::RepositoryId;
+/// use cim_domain_git::value_objects::CommitHash;
+/// use cim_domain::Command;
+///
+/// let repo_id = RepositoryId::new();
+/// let commit_hash = CommitHash::new("abc123def456789").unwrap();
+///
+/// // Basic commit analysis
+/// let analyze_cmd = AnalyzeCommit {
+///     repository_id: repo_id,
+///     commit_hash: commit_hash.clone(),
+///     analyze_files: false,
+///     extract_dependencies: false,
+/// };
+///
+/// // Full analysis with file and dependency extraction
+/// let full_analysis = AnalyzeCommit {
+///     repository_id: repo_id,
+///     commit_hash,
+///     analyze_files: true,
+///     extract_dependencies: true,
+/// };
+///
+/// // Verify aggregate ID is set correctly
+/// assert!(full_analysis.aggregate_id().is_some());
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AnalyzeCommit {
     /// Repository ID
@@ -60,6 +125,39 @@ impl Command for AnalyzeCommit {
 }
 
 /// Extract the commit graph from a repository
+///
+/// This command extracts the commit graph structure, showing the relationships
+/// between commits, branches, and merge points.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::commands::ExtractCommitGraph;
+/// use cim_domain_git::aggregate::RepositoryId;
+/// use cim_domain_git::value_objects::CommitHash;
+///
+/// let repo_id = RepositoryId::new();
+///
+/// // Extract full commit graph
+/// let full_graph = ExtractCommitGraph {
+///     repository_id: repo_id,
+///     start_commit: None, // Start from HEAD
+///     max_depth: None, // No depth limit
+///     include_all_branches: true,
+///     include_tags: true,
+/// };
+///
+/// // Extract limited graph from specific commit
+/// let limited_graph = ExtractCommitGraph {
+///     repository_id: repo_id,
+///     start_commit: Some(CommitHash::new("abc123def").unwrap()),
+///     max_depth: Some(100), // Limit to 100 commits
+///     include_all_branches: false,
+///     include_tags: false,
+/// };
+///
+/// assert_eq!(limited_graph.max_depth, Some(100));
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractCommitGraph {
     /// Repository ID

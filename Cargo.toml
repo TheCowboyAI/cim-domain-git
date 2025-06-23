@@ -49,6 +49,9 @@ uuid = { version = "1.11", features = ["v4", "serde"] }
 # Collections
 indexmap = "2.7"
 
+# Pattern matching
+regex = "1.11"
+
 [dev-dependencies]
 # Testing
 tokio-test = "0.4"

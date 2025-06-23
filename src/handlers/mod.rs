@@ -10,14 +10,15 @@ pub use cqrs_adapter::*;
 use crate::GitDomainError;
 use crate::aggregate::{Repository, RepositoryId};
 use crate::commands::{ExtractCommitGraph, ExtractDependencyGraph};
-use crate::events::{GitDomainEvent, RepositoryAnalyzed, BranchCreated, CommitAnalyzed, CommitGraphExtracted, DependencyGraphExtracted};
-use crate::value_objects::{BranchName, CommitHash, AuthorInfo};
+use crate::events::{GitDomainEvent, RepositoryAnalyzed, BranchCreated, CommitAnalyzed, CommitGraphExtracted, DependencyGraphExtracted, FileChangeInfo, FileChangeType};
+use crate::value_objects::{BranchName, CommitHash, AuthorInfo, FilePath};
+use crate::dependency_analysis::Language;
 use chrono::{DateTime, Utc};
 use cim_domain_graph::{GraphId, NodeId};
 use git2::{Oid, Repository as Git2Repository, Sort};
 use std::collections::HashMap;
 use std::path::Path;
-use tracing::info;
+use tracing::{info, instrument, warn};
 
 /// Repository command handler for Git operations
 pub struct RepositoryCommandHandler {
@@ -46,6 +47,7 @@ impl RepositoryCommandHandler {
     }
 
     /// Analyze a Git repository at the given path
+    #[instrument(skip(self), fields(path = %path.as_ref()))]
     pub async fn analyze_repository_at_path(
         &self,
         path: impl AsRef<str>,
@@ -124,6 +126,8 @@ impl RepositoryCommandHandler {
                     GitDomainError::GitOperationFailed(format!("Failed to push HEAD: {e}"))
                 })?;
             }
+        } else {
+            warn!("Repository has no HEAD - might be empty");
         }
 
         let mut commit_count = 0;
@@ -149,8 +153,49 @@ impl RepositoryCommandHandler {
                     let timestamp = DateTime::from_timestamp(commit.time().seconds(), 0)
                         .unwrap_or_else(Utc::now);
 
-                    // Get files changed (simplified - just count)
-                    let files_changed = vec![]; // TODO: Implement diff analysis
+                    // Get files changed by comparing with parent
+                    let mut files_changed = vec![];
+                    
+                    if let Some(parent) = commit.parent(0).ok() {
+                        // Get diff between parent and current commit
+                        if let Ok(parent_tree) = parent.tree() {
+                            if let Ok(current_tree) = commit.tree() {
+                                if let Ok(diff) = git_repo.diff_tree_to_tree(
+                                    Some(&parent_tree),
+                                    Some(&current_tree),
+                                    None,
+                                ) {
+                                    // Collect file changes
+                                    let _ = diff.foreach(
+                                        &mut |delta, _| {
+                                            if let Some(new_file) = delta.new_file().path() {
+                                                if let Some(path_str) = new_file.to_str() {
+                                                    if let Ok(file_path) = FilePath::new(path_str) {
+                                                        files_changed.push(FileChangeInfo {
+                                                            path: file_path,
+                                                            additions: 0, // Would need to parse diff for actual counts
+                                                            deletions: 0,
+                                                            change_type: match delta.status() {
+                                                                git2::Delta::Added => FileChangeType::Added,
+                                                                git2::Delta::Deleted => FileChangeType::Deleted,
+                                                                git2::Delta::Modified => FileChangeType::Modified,
+                                                                git2::Delta::Renamed => FileChangeType::Renamed,
+                                                                _ => FileChangeType::Modified,
+                                                            },
+                                                        });
+                                                    }
+                                                }
+                                            }
+                                            true
+                                        },
+                                        None,
+                                        None,
+                                        None,
+                                    );
+                                }
+                            }
+                        }
+                    }
 
                     let commit_event = CommitAnalyzed {
                         repository_id: repo_id,
@@ -188,7 +233,9 @@ impl RepositoryCommandHandler {
 
         // Store repository
         {
-            let mut repos = self.repositories.lock().unwrap();
+            let mut repos = self.repositories.lock().map_err(|_| {
+                GitDomainError::GitOperationFailed("Failed to acquire repository lock".to_string())
+            })?;
             repos.insert(repo_id, repository);
         }
 
@@ -196,6 +243,7 @@ impl RepositoryCommandHandler {
     }
 
     /// Extract commit graph from repository
+    #[instrument(skip(self), fields(repository_id = ?cmd.repository_id))]
     pub async fn extract_commit_graph(
         &self,
         cmd: ExtractCommitGraph,
@@ -207,7 +255,9 @@ impl RepositoryCommandHandler {
 
         // Get repository
         let repo = {
-            let repos = self.repositories.lock().unwrap();
+            let repos = self.repositories.lock().map_err(|_| {
+                GitDomainError::GitOperationFailed("Failed to acquire repository lock".to_string())
+            })?;
             repos.get(&cmd.repository_id).cloned().ok_or_else(|| {
                 GitDomainError::GitOperationFailed("Repository not found".to_string())
             })?
@@ -280,13 +330,31 @@ impl RepositoryCommandHandler {
         // Count edges
         let edge_count = edges.len();
 
+        // Calculate root commits (commits with no parents in the graph)
+        let mut root_commits = Vec::new();
+        let child_commits: std::collections::HashSet<_> = edges.iter().map(|(_, parent)| parent.clone()).collect();
+        for (commit_hash, _) in &commit_nodes {
+            if !child_commits.contains(commit_hash) {
+                root_commits.push(commit_hash.clone());
+            }
+        }
+
+        // Calculate head commits (commits with no children in the graph)
+        let mut head_commits = Vec::new();
+        let parent_commits: std::collections::HashSet<_> = edges.iter().map(|(child, _)| child.clone()).collect();
+        for (commit_hash, _) in &commit_nodes {
+            if !parent_commits.contains(commit_hash) {
+                head_commits.push(commit_hash.clone());
+            }
+        }
+
         let graph_event = CommitGraphExtracted {
             repository_id: cmd.repository_id,
             graph_id,
             commit_count,
             edge_count,
-            root_commits: vec![], // TODO: Calculate actual root commits
-            head_commits: vec![], // TODO: Calculate actual head commits
+            root_commits,
+            head_commits,
             timestamp: Utc::now(),
         };
 
@@ -295,13 +363,16 @@ impl RepositoryCommandHandler {
 
     /// Get repository by ID
     pub fn get_repository(&self, id: &RepositoryId) -> Option<Repository> {
-        let repos = self.repositories.lock().unwrap();
+        let repos = self.repositories.lock().ok()?;
         repos.get(id).cloned()
     }
 
     /// List all repositories
     pub fn list_repositories(&self) -> Vec<Repository> {
-        let repos = self.repositories.lock().unwrap();
+        let repos = match self.repositories.lock() {
+            Ok(repos) => repos,
+            Err(_) => return Vec::new(),
+        };
         repos.values().cloned().collect()
     }
 }
@@ -312,94 +383,136 @@ impl Default for RepositoryCommandHandler {
     }
 }
 
-/// File dependency analyzer for extracting dependency graphs
-pub struct DependencyAnalyzer;
+/// Extract dependency graph from repository
+pub async fn extract_dependency_graph(
+    cmd: ExtractDependencyGraph,
+    git_repo: &Git2Repository,
+) -> Result<Vec<GitDomainEvent>, GitDomainError> {
+    info!(
+        "Extracting dependency graph for repository: {:?}",
+        cmd.repository_id
+    );
 
-impl DependencyAnalyzer {
-    /// Extract dependency graph from repository
-    pub async fn extract_dependency_graph(
-        cmd: ExtractDependencyGraph,
-        git_repo: &Git2Repository,
-    ) -> Result<Vec<GitDomainEvent>, GitDomainError> {
-        info!(
-            "Extracting dependency graph for repository: {:?}",
-            cmd.repository_id
-        );
+    let graph_id = GraphId::new();
+    let mut file_count = 0;
+    let mut dependency_count = 0;
+    let analyzer = crate::dependency_analysis::DependencyAnalyzer::new();
 
-        let graph_id = GraphId::new();
-        let mut file_count = 0;
-        let dependency_count = 0;
-
-        // Get HEAD commit or specified commit
-        let commit = if let Some(commit_hash) = &cmd.commit_hash {
-            let oid = Oid::from_str(commit_hash.as_str()).map_err(|e| {
-                GitDomainError::GitOperationFailed(format!("Invalid commit: {e}"))
-            })?;
-            git_repo.find_commit(oid).map_err(|e| {
-                GitDomainError::GitOperationFailed(format!("Commit not found: {e}"))
-            })?
-        } else {
-            let head = git_repo.head().map_err(|e| {
-                GitDomainError::GitOperationFailed(format!("Failed to get HEAD: {e}"))
-            })?;
-            head.peel_to_commit().map_err(|e| {
-                GitDomainError::GitOperationFailed(format!("Failed to get HEAD commit: {e}"))
-            })?
-        };
-
-        let tree = commit.tree().map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to get tree: {e}"))
+    // Get HEAD commit or specified commit
+    let commit = if let Some(commit_hash) = &cmd.commit_hash {
+        let oid = Oid::from_str(commit_hash.as_str()).map_err(|e| {
+            GitDomainError::GitOperationFailed(format!("Invalid commit: {e}"))
         })?;
+        git_repo.find_commit(oid).map_err(|e| {
+            GitDomainError::GitOperationFailed(format!("Commit not found: {e}"))
+        })?
+    } else {
+        let head = git_repo.head().map_err(|e| {
+            GitDomainError::GitOperationFailed(format!("Failed to get HEAD: {e}"))
+        })?;
+        head.peel_to_commit().map_err(|e| {
+            GitDomainError::GitOperationFailed(format!("Failed to get HEAD commit: {e}"))
+        })?
+    };
 
-        // Walk tree and analyze files
-        tree.walk(git2::TreeWalkMode::PreOrder, |path, entry| {
-            if let Some(name) = entry.name() {
-                let full_path = if path.is_empty() {
-                    name.to_string()
-                } else {
-                    format!("{path}/{name}")
-                };
+    let tree = commit.tree().map_err(|e| {
+        GitDomainError::GitOperationFailed(format!("Failed to get tree: {e}"))
+    })?;
 
-                // Check against include/exclude patterns
-                let should_include = if cmd.include_patterns.is_empty() {
-                    true
-                } else {
-                    cmd.include_patterns.iter().any(|pattern| {
-                        // Simple pattern matching - could be enhanced with regex
-                        full_path.contains(pattern) || full_path.ends_with(pattern)
-                    })
-                };
+    // Determine language filter
+    let language_filter = cmd.language.as_ref().map(|lang| match lang.to_lowercase().as_str() {
+        "rust" => Language::Rust,
+        "python" => Language::Python,
+        "javascript" | "js" => Language::JavaScript,
+        "typescript" | "ts" => Language::TypeScript,
+        "java" => Language::Java,
+        "go" => Language::Go,
+        "c" => Language::C,
+        "cpp" | "c++" => Language::Cpp,
+        other => Language::Other(other.to_string()),
+    });
 
-                let should_exclude = cmd
-                    .exclude_patterns
-                    .iter()
-                    .any(|pattern| full_path.contains(pattern) || full_path.ends_with(pattern));
+    // Walk tree and analyze files
+    tree.walk(git2::TreeWalkMode::PreOrder, |path, entry| {
+        if let Some(name) = entry.name() {
+            let full_path = if path.is_empty() {
+                name.to_string()
+            } else {
+                format!("{path}/{name}")
+            };
 
-                if should_include && !should_exclude && entry.kind() == Some(git2::ObjectType::Blob)
-                {
+            // Check against include/exclude patterns
+            let should_include = if cmd.include_patterns.is_empty() {
+                true
+            } else {
+                cmd.include_patterns.iter().any(|pattern| {
+                    // Simple pattern matching - could be enhanced with regex
+                    full_path.contains(pattern) || full_path.ends_with(pattern)
+                })
+            };
+
+            let should_exclude = cmd
+                .exclude_patterns
+                .iter()
+                .any(|pattern| full_path.contains(pattern) || full_path.ends_with(pattern));
+
+            if should_include && !should_exclude && entry.kind() == Some(git2::ObjectType::Blob)
+            {
+                // Get file extension and check language filter
+                let extension = Path::new(&full_path)
+                    .extension()
+                    .and_then(|ext| ext.to_str());
+                
+                if let Some(ext) = extension {
+                    let file_language = Language::from_extension(ext);
+                    
+                    // Skip if language filter doesn't match
+                    if let Some(ref filter_lang) = language_filter {
+                        if &file_language != filter_lang {
+                            return git2::TreeWalkResult::Ok;
+                        }
+                    }
+                    
+                    // Analyze file for dependencies
+                    if let Ok(blob) = git_repo.find_blob(entry.id()) {
+                        if let Ok(content) = std::str::from_utf8(blob.content()) {
+                            // Check if it's a manifest file
+                            let file_name = Path::new(&full_path)
+                                .file_name()
+                                .and_then(|n| n.to_str())
+                                .unwrap_or("");
+                            
+                            let dependencies = if matches!(file_name, "Cargo.toml" | "package.json" | "requirements.txt" | "go.mod") {
+                                analyzer.analyze_manifest(content, file_name)
+                            } else {
+                                analyzer.analyze_file(content, &file_language)
+                            };
+                            
+                            if let Ok(deps) = dependencies {
+                                dependency_count += deps.len();
+                            }
+                        }
+                    }
+                    
                     file_count += 1;
-
-                    // TODO: Analyze file content for dependencies
-                    // This would require parsing the file based on language
-                    // For now, we'll just count files
                 }
             }
-            git2::TreeWalkResult::Ok
-        })
-        .map_err(|e| GitDomainError::GitOperationFailed(format!("Failed to walk tree: {e}")))?;
+        }
+        git2::TreeWalkResult::Ok
+    })
+    .map_err(|e| GitDomainError::GitOperationFailed(format!("Failed to walk tree: {e}")))?;
 
-        let graph_event = DependencyGraphExtracted {
-            repository_id: cmd.repository_id,
-            graph_id,
-            commit_hash: CommitHash::new(commit.id().to_string())?,
-            file_count,
-            dependency_count,
-            language: cmd.language,
-            timestamp: Utc::now(),
-        };
+    let graph_event = DependencyGraphExtracted {
+        repository_id: cmd.repository_id,
+        graph_id,
+        commit_hash: CommitHash::new(commit.id().to_string())?,
+        file_count,
+        dependency_count,
+        language: cmd.language,
+        timestamp: Utc::now(),
+    };
 
-        Ok(vec![GitDomainEvent::DependencyGraphExtracted(graph_event)])
-    }
+    Ok(vec![GitDomainEvent::DependencyGraphExtracted(graph_event)])
 }
 
 #[cfg(test)]

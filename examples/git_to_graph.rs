@@ -36,7 +36,6 @@ use cim_domain_graph::{
     domain_events::GraphDomainEvent,
     handlers::{GraphCommandHandler, GraphCommandHandlerImpl, InMemoryGraphRepository},
 };
-use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{info, warn};
 
@@ -209,7 +208,7 @@ impl GitToGraphConverter {
         info!("Extracting dependency graph from repository");
 
         // Create Git domain command to extract dependency graph
-        let extract_cmd = ExtractDependencyGraph {
+        let _extract_cmd = ExtractDependencyGraph {
             repository_id,
             commit_hash: None, // Use HEAD
             include_patterns: vec![
@@ -228,7 +227,7 @@ impl GitToGraphConverter {
 
         // Execute Git domain command (simplified - the real implementation would need access to git2)
         // For now, we'll create a basic dependency graph structure
-        let graph_id = cim_domain_graph::GraphId::new();
+        // Note: _extract_cmd will be used in a full implementation
 
         let create_graph_cmd = GraphCommand::CreateGraph {
             name: format!("Dependency Graph - Repository {}", repository_id.as_uuid()),
