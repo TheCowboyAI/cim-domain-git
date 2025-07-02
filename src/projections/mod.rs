@@ -37,7 +37,7 @@ pub struct RepositoryListProjection {
 
 impl RepositoryListProjection {
     /// Create a new repository list projection
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             repositories: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -53,7 +53,7 @@ impl RepositoryListProjection {
                 let summary = repos.entry(e.repository_id)
                     .or_insert_with(|| RepositorySummary {
                         id: e.repository_id,
-                        name: e.local_path.split('/').last()
+                        name: e.local_path.split('/').next_back()
                             .unwrap_or("unknown")
                             .to_string(),
                         remote_url: None,
@@ -126,8 +126,7 @@ impl RepositoryListProjection {
         
         Ok(repos.values()
             .filter(|r| r.remote_url.as_ref()
-                .map(|url| url.as_str().contains(pattern))
-                .unwrap_or(false))
+                .is_some_and(|url| url.as_str().contains(pattern)))
             .cloned()
             .collect())
     }
@@ -166,7 +165,7 @@ pub struct CommitHistoryProjection {
 
 impl CommitHistoryProjection {
     /// Create a new commit history projection
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             commits: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -255,7 +254,7 @@ pub struct BranchStatusProjection {
 
 impl BranchStatusProjection {
     /// Create a new branch status projection
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             branches: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -360,7 +359,7 @@ pub struct RenameInfo {
 
 impl FileChangeProjection {
     /// Create a new file change projection
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             file_changes: Arc::new(RwLock::new(HashMap::new())),
             commit_changes: Arc::new(RwLock::new(HashMap::new())),
@@ -385,7 +384,7 @@ impl FileChangeProjection {
                     let change = FileChange {
                         path: file_change_info.path.clone(),
                         commit_hash: event.commit_hash.clone(),
-                        change_type: file_change_info.change_type.clone(),
+                        change_type: file_change_info.change_type,
                         additions: file_change_info.additions,
                         deletions: file_change_info.deletions,
                         author: event.author.clone(),

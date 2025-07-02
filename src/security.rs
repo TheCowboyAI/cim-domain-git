@@ -16,7 +16,7 @@ pub fn validate_path(path: &str) -> Result<PathBuf, GitDomainError> {
     }
 
     // Check for common path traversal patterns
-    if path.contains("..") || path.contains("~") {
+    if path.contains("..") || path.contains('~') {
         return Err(GitDomainError::ValidationError(
             "Path contains directory traversal patterns".to_string()
         ));
@@ -50,7 +50,7 @@ pub fn validate_remote_url(url: &str) -> Result<(), GitDomainError> {
     for ch in dangerous_chars {
         if url.contains(ch) {
             return Err(GitDomainError::ValidationError(
-                format!("URL contains dangerous character: {}", ch)
+                format!("URL contains dangerous character: {ch}")
             ));
         }
     }
@@ -81,7 +81,7 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
     for ch in dangerous_chars {
         if name.contains(ch) {
             return Err(GitDomainError::ValidationError(
-                format!("Branch name contains dangerous character: {}", ch)
+                format!("Branch name contains dangerous character: {ch}")
             ));
         }
     }
@@ -109,7 +109,7 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
 }
 
 /// Sanitize user input for use in error messages
-pub fn sanitize_for_display(input: &str) -> String {
+#[must_use] pub fn sanitize_for_display(input: &str) -> String {
     // Remove control characters and limit length
     input
         .chars()

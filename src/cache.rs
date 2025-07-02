@@ -52,12 +52,12 @@ pub struct DependencyInfo {
 
 impl GitCache {
     /// Create a new cache with default TTL of 5 minutes
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self::with_ttl(Duration::from_secs(300))
     }
 
     /// Create a new cache with custom TTL
-    pub fn with_ttl(ttl: Duration) -> Self {
+    #[must_use] pub fn with_ttl(ttl: Duration) -> Self {
         Self {
             commit_graphs: Arc::new(RwLock::new(HashMap::new())),
             dependency_graphs: Arc::new(RwLock::new(HashMap::new())),
@@ -66,7 +66,7 @@ impl GitCache {
     }
 
     /// Get cached commit graph
-    pub fn get_commit_graph(
+    #[must_use] pub fn get_commit_graph(
         &self,
         repo_id: &RepositoryId,
         start_commit: Option<&CommitHash>,
@@ -93,7 +93,7 @@ impl GitCache {
     }
 
     /// Get cached dependency graph
-    pub fn get_dependency_graph(
+    #[must_use] pub fn get_dependency_graph(
         &self,
         repo_id: &RepositoryId,
         commit_hash: &CommitHash,
@@ -140,7 +140,7 @@ impl GitCache {
     }
 
     /// Get cache statistics
-    pub fn stats(&self) -> CacheStats {
+    #[must_use] pub fn stats(&self) -> CacheStats {
         let commit_graph_count = self.commit_graphs.read()
             .map(|c| c.len())
             .unwrap_or(0);

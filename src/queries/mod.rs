@@ -97,7 +97,7 @@ pub struct GitQueryHandler {
 
 impl GitQueryHandler {
     /// Create a new query handler
-    pub fn new(
+    #[must_use] pub fn new(
         repository_projection: Arc<RepositoryListProjection>,
         commit_projection: Arc<CommitHistoryProjection>,
         branch_projection: Arc<BranchStatusProjection>,
@@ -109,7 +109,7 @@ impl GitQueryHandler {
         }
     }
 
-    /// Handle GetRepositoryDetails query
+    /// Handle `GetRepositoryDetails` query
     pub async fn handle_get_repository_details(
         &self,
         query: GetRepositoryDetails,
@@ -136,7 +136,7 @@ impl GitQueryHandler {
         })
     }
 
-    /// Handle GetCommitHistory query
+    /// Handle `GetCommitHistory` query
     pub async fn handle_get_commit_history(
         &self,
         query: GetCommitHistory,
@@ -163,7 +163,7 @@ impl GitQueryHandler {
         })
     }
 
-    /// Handle GetBranchList query
+    /// Handle `GetBranchList` query
     pub async fn handle_get_branch_list(
         &self,
         query: GetBranchList,
@@ -183,7 +183,7 @@ impl GitQueryHandler {
         })
     }
 
-    /// Handle ListRepositories query
+    /// Handle `ListRepositories` query
     pub async fn handle_list_repositories(
         &self,
         query: ListRepositories,

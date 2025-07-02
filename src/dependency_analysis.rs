@@ -58,7 +58,7 @@ pub enum Language {
 
 impl Language {
     /// Detect language from file extension
-    pub fn from_extension(ext: &str) -> Self {
+    #[must_use] pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
             "rs" => Language::Rust,
             "py" => Language::Python,
@@ -81,13 +81,13 @@ pub struct DependencyAnalyzer {
 
 impl DependencyAnalyzer {
     /// Create a new dependency analyzer
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         let mut patterns = HashMap::new();
         
         // Rust patterns
         patterns.insert(Language::Rust, vec![
             (Regex::new(r"^\s*use\s+([a-zA-Z0-9_:]+)").unwrap(), DependencyType::Use),
-            (Regex::new(r#"^\s*extern\s+crate\s+([a-zA-Z0-9_]+)"#).unwrap(), DependencyType::Import),
+            (Regex::new(r"^\s*extern\s+crate\s+([a-zA-Z0-9_]+)").unwrap(), DependencyType::Import),
         ]);
         
         // Python patterns
@@ -119,7 +119,7 @@ impl DependencyAnalyzer {
         
         // C/C++ patterns
         let c_patterns = vec![
-            (Regex::new(r#"^\s*#include\s*<([^>]+)>"#).unwrap(), DependencyType::Include),
+            (Regex::new(r"^\s*#include\s*<([^>]+)>").unwrap(), DependencyType::Include),
             (Regex::new(r#"^\s*#include\s*"([^"]+)""#).unwrap(), DependencyType::Include),
         ];
         patterns.insert(Language::C, c_patterns.clone());
@@ -203,7 +203,7 @@ impl DependencyAnalyzer {
                             dependencies.insert(Dependency {
                                 name: name.clone(),
                                 dependency_type: DependencyType::Package,
-                                version: version.as_str().map(|s| s.to_string()),
+                                version: version.as_str().map(std::string::ToString::to_string),
                             });
                         }
                     }
@@ -212,7 +212,7 @@ impl DependencyAnalyzer {
                             dependencies.insert(Dependency {
                                 name: name.clone(),
                                 dependency_type: DependencyType::Package,
-                                version: version.as_str().map(|s| s.to_string()),
+                                version: version.as_str().map(std::string::ToString::to_string),
                             });
                         }
                     }

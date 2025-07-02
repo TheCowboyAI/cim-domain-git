@@ -156,7 +156,7 @@ impl RepositoryCommandHandler {
                     // Get files changed by comparing with parent
                     let mut files_changed = vec![];
                     
-                    if let Some(parent) = commit.parent(0).ok() {
+                    if let Ok(parent) = commit.parent(0) {
                         // Get diff between parent and current commit
                         if let Ok(parent_tree) = parent.tree() {
                             if let Ok(current_tree) = commit.tree() {
@@ -333,7 +333,7 @@ impl RepositoryCommandHandler {
         // Calculate root commits (commits with no parents in the graph)
         let mut root_commits = Vec::new();
         let child_commits: std::collections::HashSet<_> = edges.iter().map(|(_, parent)| parent.clone()).collect();
-        for (commit_hash, _) in &commit_nodes {
+        for commit_hash in commit_nodes.keys() {
             if !child_commits.contains(commit_hash) {
                 root_commits.push(commit_hash.clone());
             }
@@ -342,7 +342,7 @@ impl RepositoryCommandHandler {
         // Calculate head commits (commits with no children in the graph)
         let mut head_commits = Vec::new();
         let parent_commits: std::collections::HashSet<_> = edges.iter().map(|(child, _)| child.clone()).collect();
-        for (commit_hash, _) in &commit_nodes {
+        for commit_hash in commit_nodes.keys() {
             if !parent_commits.contains(commit_hash) {
                 head_commits.push(commit_hash.clone());
             }

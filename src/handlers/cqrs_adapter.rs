@@ -1,18 +1,18 @@
 //! CQRS adapter for Git domain handlers
 
-use crate::commands::*;
+use crate::commands::{ExtractCommitGraph, CloneRepository, AnalyzeCommit, ExtractDependencyGraph, CreateBranch, DeleteBranch, CreateTag, AnalyzeRepository, FetchRemote, AnalyzeFileHistory, CompareBranches, SearchRepository, GitHubIntegration};
 use crate::handlers::RepositoryCommandHandler;
 use cim_domain::{
     CommandHandler, CommandEnvelope, CommandAcknowledgment, CommandStatus,
 };
 
-/// CQRS adapter for ExtractCommitGraph command
+/// CQRS adapter for `ExtractCommitGraph` command
 pub struct ExtractCommitGraphHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl ExtractCommitGraphHandler {
-    /// Create a new ExtractCommitGraphHandler with the given repository handler
+    /// Create a new `ExtractCommitGraphHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -39,19 +39,19 @@ impl CommandHandler<ExtractCommitGraph> for ExtractCommitGraphHandler {
                 command_id: envelope.id,
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
-                reason: Some(format!("Failed to extract commit graph: {}", e)),
+                reason: Some(format!("Failed to extract commit graph: {e}")),
             }
         }
     }
 }
 
-/// CQRS adapter for CloneRepository command
+/// CQRS adapter for `CloneRepository` command
 pub struct CloneRepositoryHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl CloneRepositoryHandler {
-    /// Create a new CloneRepositoryHandler with the given repository handler
+    /// Create a new `CloneRepositoryHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -80,19 +80,19 @@ impl CommandHandler<CloneRepository> for CloneRepositoryHandler {
                 command_id: envelope.id,
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
-                reason: Some(format!("Failed to clone repository: {}", e)),
+                reason: Some(format!("Failed to clone repository: {e}")),
             }
         }
     }
 }
 
-/// CQRS adapter for AnalyzeCommit command
+/// CQRS adapter for `AnalyzeCommit` command
 pub struct AnalyzeCommitHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl AnalyzeCommitHandler {
-    /// Create a new AnalyzeCommitHandler with the given repository handler
+    /// Create a new `AnalyzeCommitHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -125,13 +125,13 @@ impl CommandHandler<AnalyzeCommit> for AnalyzeCommitHandler {
     }
 }
 
-/// CQRS adapter for ExtractDependencyGraph command
+/// CQRS adapter for `ExtractDependencyGraph` command
 pub struct ExtractDependencyGraphHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl ExtractDependencyGraphHandler {
-    /// Create a new ExtractDependencyGraphHandler with the given repository handler
+    /// Create a new `ExtractDependencyGraphHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -164,13 +164,13 @@ impl CommandHandler<ExtractDependencyGraph> for ExtractDependencyGraphHandler {
     }
 }
 
-/// CQRS adapter for CreateBranch command
+/// CQRS adapter for `CreateBranch` command
 pub struct CreateBranchHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl CreateBranchHandler {
-    /// Create a new CreateBranchHandler with the given repository handler
+    /// Create a new `CreateBranchHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -203,13 +203,13 @@ impl CommandHandler<CreateBranch> for CreateBranchHandler {
     }
 }
 
-/// CQRS adapter for DeleteBranch command
+/// CQRS adapter for `DeleteBranch` command
 pub struct DeleteBranchHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl DeleteBranchHandler {
-    /// Create a new DeleteBranchHandler with the given repository handler
+    /// Create a new `DeleteBranchHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -242,13 +242,13 @@ impl CommandHandler<DeleteBranch> for DeleteBranchHandler {
     }
 }
 
-/// CQRS adapter for CreateTag command
+/// CQRS adapter for `CreateTag` command
 pub struct CreateTagHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl CreateTagHandler {
-    /// Create a new CreateTagHandler with the given repository handler
+    /// Create a new `CreateTagHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -281,13 +281,13 @@ impl CommandHandler<CreateTag> for CreateTagHandler {
     }
 }
 
-/// CQRS adapter for AnalyzeRepository command
+/// CQRS adapter for `AnalyzeRepository` command
 pub struct AnalyzeRepositoryHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl AnalyzeRepositoryHandler {
-    /// Create a new AnalyzeRepositoryHandler with the given repository handler
+    /// Create a new `AnalyzeRepositoryHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -320,7 +320,7 @@ impl CommandHandler<AnalyzeRepository> for AnalyzeRepositoryHandler {
                             command_id: envelope.id,
                             correlation_id: envelope.identity.correlation_id,
                             status: CommandStatus::Rejected,
-                            reason: Some(format!("Failed to analyze repository: {}", e)),
+                            reason: Some(format!("Failed to analyze repository: {e}")),
                         }
                     }
                 } else {
@@ -342,13 +342,13 @@ impl CommandHandler<AnalyzeRepository> for AnalyzeRepositoryHandler {
     }
 }
 
-/// CQRS adapter for FetchRemote command
+/// CQRS adapter for `FetchRemote` command
 pub struct FetchRemoteHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl FetchRemoteHandler {
-    /// Create a new FetchRemoteHandler with the given repository handler
+    /// Create a new `FetchRemoteHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -381,13 +381,13 @@ impl CommandHandler<FetchRemote> for FetchRemoteHandler {
     }
 }
 
-/// CQRS adapter for AnalyzeFileHistory command
+/// CQRS adapter for `AnalyzeFileHistory` command
 pub struct AnalyzeFileHistoryHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl AnalyzeFileHistoryHandler {
-    /// Create a new AnalyzeFileHistoryHandler with the given repository handler
+    /// Create a new `AnalyzeFileHistoryHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -420,13 +420,13 @@ impl CommandHandler<AnalyzeFileHistory> for AnalyzeFileHistoryHandler {
     }
 }
 
-/// CQRS adapter for CompareBranches command
+/// CQRS adapter for `CompareBranches` command
 pub struct CompareBranchesHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl CompareBranchesHandler {
-    /// Create a new CompareBranchesHandler with the given repository handler
+    /// Create a new `CompareBranchesHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -459,13 +459,13 @@ impl CommandHandler<CompareBranches> for CompareBranchesHandler {
     }
 }
 
-/// CQRS adapter for SearchRepository command
+/// CQRS adapter for `SearchRepository` command
 pub struct SearchRepositoryHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl SearchRepositoryHandler {
-    /// Create a new SearchRepositoryHandler with the given repository handler
+    /// Create a new `SearchRepositoryHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
@@ -498,13 +498,13 @@ impl CommandHandler<SearchRepository> for SearchRepositoryHandler {
     }
 }
 
-/// CQRS adapter for GitHubIntegration command
+/// CQRS adapter for `GitHubIntegration` command
 pub struct GitHubIntegrationHandler {
     repository_handler: RepositoryCommandHandler,
 }
 
 impl GitHubIntegrationHandler {
-    /// Create a new GitHubIntegrationHandler with the given repository handler
+    /// Create a new `GitHubIntegrationHandler` with the given repository handler
     pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
         Self { repository_handler }
     }
