@@ -315,8 +315,8 @@ mod tests {
         for i in 0..3 {
             let event = GitDomainEvent::RepositoryAnalyzed(RepositoryAnalyzed {
                 repository_id: RepositoryId::new(),
-                path: format!("/tmp/repo-{}", i),
-                name: format!("repo-{}", i),
+                path: format!("/tmp/repo-{i}"),
+                name: format!("repo-{i}"),
                 branch_count: 1,
                 commit_count: 10,
                 timestamp: Utc::now(),

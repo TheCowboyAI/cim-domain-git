@@ -10,14 +10,14 @@
 //!     D --> E[Aggregate State Update]
 //! ```
 
-use cim_domain::{CommandEnvelope, CommandStatus, CommandHandler, CommandId};
-use cim_subject::{MessageIdentity, CorrelationId, CausationId, IdType};
+use cim_domain::{CommandEnvelope, CommandHandler, CommandId, CommandStatus};
 use cim_domain_git::{
+    aggregate::RepositoryId,
     commands::*,
     handlers::*,
-    aggregate::RepositoryId,
-    value_objects::{BranchName, CommitHash, RemoteUrl, TagName, FilePath},
+    value_objects::{BranchName, CommitHash, FilePath, RemoteUrl, TagName},
 };
+use cim_subject::{CausationId, CorrelationId, IdType, MessageIdentity};
 
 /// Helper function to create a test command envelope
 fn create_test_envelope<T>(command: T) -> CommandEnvelope<T> {
@@ -73,7 +73,10 @@ fn test_clone_repository_handler() {
     let ack = handler.handle(envelope);
 
     // This will fail as the path doesn't exist, but we're testing the handler works
-    assert!(matches!(ack.status, CommandStatus::Accepted | CommandStatus::Rejected));
+    assert!(matches!(
+        ack.status,
+        CommandStatus::Accepted | CommandStatus::Rejected
+    ));
 }
 
 #[test]
@@ -289,4 +292,4 @@ fn test_extract_dependency_graph_handler() {
 
     assert_eq!(ack.status, CommandStatus::Rejected);
     assert_eq!(ack.reason, Some("Repository not found".to_string()));
-} 
+}

@@ -539,7 +539,7 @@ mod tests {
                     assert!(!events.is_empty());
                 }
                 Err(e) => {
-                    println!("Failed to analyze repository: {}", e);
+                    println!("Failed to analyze repository: {e}");
                     // Don't fail the test if we're not in a git repo
                 }
             }

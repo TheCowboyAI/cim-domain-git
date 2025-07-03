@@ -96,7 +96,7 @@
 //!     match CommitHash::new(hash_str) {
 //!         Ok(hash) => Ok(hash),
 //!         Err(e) => {
-//!             eprintln!("Invalid commit hash: {}", e);
+//!             eprintln!("Invalid commit hash: {e}");
 //!             Err(e)
 //!         }
 //!     }

@@ -1,10 +1,10 @@
 //! Basic tests for cim-domain-git module structure
 
 use cim_domain_git::{
-    GitDomainError,
     aggregate::Repository,
     commands::CloneRepository,
     value_objects::{BranchName, CommitHash, RemoteUrl},
+    GitDomainError,
 };
 
 #[test]

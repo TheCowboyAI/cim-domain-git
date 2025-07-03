@@ -151,11 +151,8 @@ impl GitToGraphConverter {
 
         // Create corresponding graph in Graph domain
         let create_graph_cmd = GraphCommand::CreateGraph {
-            name: format!("Commit Graph - Repository {}", repository_id.as_uuid()),
-            description: format!(
-                "Git commit history graph with {} commits and {} edges",
-                commit_graph_event.commit_count, commit_graph_event.edge_count
-            ),
+            name: format!("Commit Graph - Repository {repository_id.as_uuid(}")),
+            description: format!("Git commit history graph with {commit_graph_event.commit_count} commits and {commit_graph_event.edge_count} edges"),
             metadata: {
                 let mut data = std::collections::HashMap::new();
                 data.insert(
@@ -230,7 +227,7 @@ impl GitToGraphConverter {
         // Note: _extract_cmd will be used in a full implementation
 
         let create_graph_cmd = GraphCommand::CreateGraph {
-            name: format!("Dependency Graph - Repository {}", repository_id.as_uuid()),
+            name: format!("Dependency Graph - Repository {repository_id.as_uuid(}")),
             description: "File dependency relationships extracted from Git repository".to_string(),
             metadata: {
                 let mut data = std::collections::HashMap::new();
@@ -311,44 +308,37 @@ impl GitToGraphConverter {
     /// Display the analysis results
     pub fn display_results(&self, result: &GitAnalysisResult) {
         println!("\n=== Git Repository Analysis Results ===");
-        println!("Repository ID: {}", result.repository_id.as_uuid());
-        println!(
-            "Repository Name: {}",
-            result.analysis_summary.repository_name
-        );
-        println!("Graphs Created: {}", result.graphs_created);
+        println!("Repository ID: {result.repository_id.as_uuid(}"));
+        println!("Repository Name: {result.analysis_summary.repository_name}");
+        println!("Graphs Created: {result.graphs_created}");
 
         if let Some(commit_graph_id) = result.commit_graph_id {
-            println!("Commit Graph ID: {}", commit_graph_id.as_uuid());
+            println!("Commit Graph ID: {commit_graph_id.as_uuid(}"));
         }
 
         if let Some(dependency_graph_id) = result.dependency_graph_id {
-            println!("Dependency Graph ID: {}", dependency_graph_id.as_uuid());
+            println!("Dependency Graph ID: {dependency_graph_id.as_uuid(}"));
         }
 
         println!("\n=== Analysis Summary ===");
-        println!("Total Branches: {}", result.analysis_summary.total_branches);
-        println!("Total Commits: {}", result.analysis_summary.total_commits);
-        println!(
-            "Commits Analyzed: {}",
-            result.analysis_summary.commits_analyzed.len()
+        println!("Total Branches: {result.analysis_summary.total_branches}");
+        println!("Total Commits: {result.analysis_summary.total_commits}");
+        println!("Commits Analyzed: {result.analysis_summary.commits_analyzed.len(}")
         );
-        println!(
-            "Unique Authors: {}",
-            result.analysis_summary.unique_authors.len()
+        println!("Unique Authors: {result.analysis_summary.unique_authors.len(}")
         );
 
         if !result.analysis_summary.branches_analyzed.is_empty() {
             println!("Branches Found:");
             for branch in &result.analysis_summary.branches_analyzed {
-                println!("  - {}", branch);
+                println!("  - {branch}");
             }
         }
 
         if !result.analysis_summary.unique_authors.is_empty() {
             println!("Authors Found:");
             for author in &result.analysis_summary.unique_authors {
-                println!("  - {}", author);
+                println!("  - {author}");
             }
         }
     }
@@ -425,10 +415,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             converter.display_results(&result);
 
             if result.graphs_created > 0 {
-                println!(
-                    "\n✅ Success! Created {} graph(s) from Git repository data",
-                    result.graphs_created
-                );
+                println!("\n✅ Success! Created {result.graphs_created} graph(s) from Git repository data");
                 println!("\nNext steps:");
                 println!("1. Use the Graph domain queries to explore the created graphs");
                 println!("2. Visualize the graphs using the Bevy presentation layer");
@@ -438,7 +425,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Err(e) => {
-            eprintln!("❌ Error during Git to Graph conversion: {}", e);
+            eprintln!("❌ Error during Git to Graph conversion: {e}");
             std::process::exit(1);
         }
     }
