@@ -11,10 +11,10 @@ categories = ["development-tools", "data-structures"]
 
 [dependencies]
 # Core CIM dependencies
-cim-domain = { path = "../cim-domain" }
+cim-domain = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
 cim-infrastructure = { path = "../cim-infrastructure" }
-cim-ipld = { path = "../cim-domain/crates/cim-ipld" }
-cim-subject = { path = "../cim-domain/crates/cim-subject" }
+cim-ipld = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
+cim-subject = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
 
 # Domain dependencies
 cim-domain-graph = { path = "../cim-domain-graph" }
