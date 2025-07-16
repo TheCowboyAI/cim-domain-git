@@ -21,9 +21,9 @@ fn create_test_repo() -> TempDir {
         let mut index = repo.index().unwrap();
 
         // Add a file
-        let file_path = temp_dir.path().join("README.md");
+        let file_path = temp_dir.path().join("readme.md");
         fs::write(&file_path, "# Test Repository\n\nThis is a test.").unwrap();
-        index.add_path(Path::new("README.md")).unwrap();
+        index.add_path(Path::new("readme.md")).unwrap();
 
         // Add a Rust file
         let rust_file = temp_dir.path().join("main.rs");
@@ -223,13 +223,13 @@ async fn test_file_change_tracking() {
 
     let tree_id = {
         let mut index = repo.index().unwrap();
-        let file_path = temp_dir.path().join("README.md");
+        let file_path = temp_dir.path().join("readme.md");
         fs::write(
             &file_path,
             "# Test Repository\n\nThis is a test.\n\nUpdated!",
         )
         .unwrap();
-        index.add_path(Path::new("README.md")).unwrap();
+        index.add_path(Path::new("readme.md")).unwrap();
         index.write().unwrap();
         index.write_tree().unwrap()
     };
@@ -252,7 +252,7 @@ async fn test_file_change_tracking() {
         .await
         .unwrap();
 
-    // Find the commit that modified README.md
+    // Find the commit that modified readme.md
     let commit_events: Vec<_> = events
         .iter()
         .filter_map(|e| match e {
@@ -267,7 +267,7 @@ async fn test_file_change_tracking() {
         .expect("Should find update commit");
 
     assert_eq!(update_commit.files_changed.len(), 1);
-    assert_eq!(update_commit.files_changed[0].path.as_str(), "README.md");
+    assert_eq!(update_commit.files_changed[0].path.as_str(), "readme.md");
     assert_eq!(
         update_commit.files_changed[0].change_type,
         FileChangeType::Modified

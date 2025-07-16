@@ -334,8 +334,8 @@ impl fmt::Display for TagName {
 /// assert_eq!(complex.extension(), Some("gz"));
 ///
 /// // Root level files
-/// let root_file = FilePath::new("README.md").unwrap();
-/// assert_eq!(root_file.file_name(), Some("README.md"));
+/// let root_file = FilePath::new("readme.md").unwrap();
+/// assert_eq!(root_file.file_name(), Some("readme.md"));
 /// assert_eq!(root_file.directory(), None);
 ///
 /// // Invalid paths

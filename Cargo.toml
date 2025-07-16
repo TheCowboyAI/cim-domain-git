@@ -13,8 +13,8 @@ categories = ["development-tools", "data-structures"]
 # Core CIM dependencies
 cim-domain = { path = "../cim-domain" }
 cim-infrastructure = { path = "../cim-infrastructure" }
-cim-ipld = { path = "../cim-ipld" }
-cim-subject = { path = "../cim-subject" }
+cim-ipld = { path = "../cim-domain/crates/cim-ipld" }
+cim-subject = { path = "../cim-domain/crates/cim-subject" }
 
 # Domain dependencies
 cim-domain-graph = { path = "../cim-domain-graph" }
