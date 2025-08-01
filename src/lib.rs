@@ -127,10 +127,9 @@ pub mod projections;
 pub mod queries;
 pub mod security;
 pub mod value_objects;
-// TODO: dependency_analysis module has been disabled
-// This was used by the removed graph extraction functionality
-// pub mod dependency_analysis;
+pub mod dependency_analysis;
 pub mod cache;
+pub mod nats;
 
 // Re-export commonly used types
 pub use aggregate::{Repository, RepositoryId};
@@ -154,6 +153,13 @@ pub use queries::{
     GetCommitHistory, CommitHistoryResult,
     GetBranchList, BranchListResult,
     ListRepositories, ListRepositoriesResult,
+};
+
+// Re-export NATS types
+pub use nats::{
+    NatsClient, NatsConfig, NatsError,
+    EventPublisher, CommandSubscriber, EventSubscriber,
+    HealthService, ServiceDiscovery, ServiceInfo,
 };
 
 /// Domain-specific errors for Git operations
