@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Value objects for the Git domain
 //!
 //! Value objects are immutable and represent concepts in the Git domain

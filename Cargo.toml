@@ -2,24 +2,36 @@
 name = "cim-domain-git"
 version = "0.3.0"
 edition = "2021"
-authors = ["The Cowboy AI Team"]
-description = "Git domain module for CIM - provides Git repository introspection and graph extraction capabilities"
+authors = ["Cowboy AI, LLC <dev@thecowboy.ai>"]
+description = "Git domain module for CIM - comprehensive Git repository introspection and analysis"
+documentation = "https://docs.rs/cim-domain-git"
+homepage = "https://github.com/thecowboyai/cim-domain-git"
+repository = "https://github.com/thecowboyai/cim-domain-git"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/thecowboyai/alchemist"
-keywords = ["git", "domain", "cim", "event-sourcing", "graph"]
+readme = "README.md"
+keywords = ["git", "domain", "cim", "event-sourcing", "ddd"]
 categories = ["development-tools", "data-structures"]
+exclude = [
+    ".github/",
+    "tests/",
+    "examples/",
+    "benches/",
+    ".gitignore",
+    ".git/",
+    "*.log",
+    "target/",
+]
 
 [dependencies]
 # Core CIM dependencies
 cim-domain = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
-cim-infrastructure = { path = "../cim-infrastructure" }
-cim-ipld = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
-cim-subject = { git = "https://github.com/TheCowboyAI/cim-domain.git", branch = "main" }
+cim-ipld = { git = "https://github.com/TheCowboyAI/cim-ipld.git", branch = "main" }
+cim-subject = { git = "https://github.com/TheCowboyAI/cim-subject.git", branch = "main" }
 
 # Domain dependencies
-cim-domain-graph = { path = "../cim-domain-graph" }
-cim-domain-document = { path = "../cim-domain-document" }
-cim-domain-agent = { path = "../cim-domain-agent" }
+# cim-domain-graph = { path = "../cim-domain-graph" }
+# cim-domain-document = { path = "../cim-domain-document" }
+# cim-domain-agent = { path = "../cim-domain-agent" }
 
 # Git functionality
 git2 = "0.19"

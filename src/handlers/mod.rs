@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Command and event handlers for the Git domain
 //!
 //! This module contains the implementation of command handlers
@@ -9,12 +11,9 @@ pub use cqrs_adapter::*;
 
 use crate::GitDomainError;
 use crate::aggregate::{Repository, RepositoryId};
-use crate::commands::{ExtractCommitGraph, ExtractDependencyGraph};
-use crate::events::{GitDomainEvent, RepositoryAnalyzed, BranchCreated, CommitAnalyzed, CommitGraphExtracted, DependencyGraphExtracted, FileChangeInfo, FileChangeType};
+use crate::events::{GitDomainEvent, RepositoryAnalyzed, BranchCreated, CommitAnalyzed, FileChangeInfo, FileChangeType};
 use crate::value_objects::{BranchName, CommitHash, AuthorInfo, FilePath};
-use crate::dependency_analysis::Language;
 use chrono::{DateTime, Utc};
-use cim_domain_graph::{GraphId, NodeId};
 use git2::{Oid, Repository as Git2Repository, Sort};
 use std::collections::HashMap;
 use std::path::Path;
@@ -242,124 +241,8 @@ impl RepositoryCommandHandler {
         Ok((repo_id, events))
     }
 
-    /// Extract commit graph from repository
-    #[instrument(skip(self), fields(repository_id = ?cmd.repository_id))]
-    pub async fn extract_commit_graph(
-        &self,
-        cmd: ExtractCommitGraph,
-    ) -> Result<Vec<GitDomainEvent>, GitDomainError> {
-        info!(
-            "Extracting commit graph for repository: {:?}",
-            cmd.repository_id
-        );
-
-        // Get repository
-        let repo = {
-            let repos = self.repositories.lock().map_err(|_| {
-                GitDomainError::GitOperationFailed("Failed to acquire repository lock".to_string())
-            })?;
-            repos.get(&cmd.repository_id).cloned().ok_or_else(|| {
-                GitDomainError::GitOperationFailed("Repository not found".to_string())
-            })?
-        };
-
-        let local_path = repo.local_path.as_ref().ok_or_else(|| {
-            GitDomainError::GitOperationFailed("Repository not cloned".to_string())
-        })?;
-
-        // Open repository with git2
-        let git_repo = Git2Repository::open(local_path).map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to open repository: {e}"))
-        })?;
-
-        // Create graph
-        let graph_id = GraphId::new();
-        let mut commit_nodes = HashMap::new();
-        let mut edges = Vec::new();
-
-        // Walk commits
-        let mut revwalk = git_repo.revwalk().map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to create revwalk: {e}"))
-        })?;
-
-        revwalk.set_sorting(Sort::TIME).map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to set sort: {e}"))
-        })?;
-
-        // Start from specified commit or HEAD
-        if let Some(start_commit) = &cmd.start_commit {
-            let oid = Oid::from_str(start_commit.as_str()).map_err(|e| {
-                GitDomainError::GitOperationFailed(format!("Invalid commit: {e}"))
-            })?;
-            revwalk.push(oid).map_err(|e| {
-                GitDomainError::GitOperationFailed(format!("Failed to push commit: {e}"))
-            })?;
-        } else if let Ok(head) = git_repo.head() {
-            if let Some(target) = head.target() {
-                revwalk.push(target).map_err(|e| {
-                    GitDomainError::GitOperationFailed(format!("Failed to push HEAD: {e}"))
-                })?;
-            }
-        }
-
-        let mut commit_count = 0;
-        let max_commits = cmd.max_depth.unwrap_or(100) as usize;
-
-        for commit_oid in revwalk.take(max_commits) {
-            if let Ok(oid) = commit_oid {
-                if let Ok(commit) = git_repo.find_commit(oid) {
-                    let commit_hash = CommitHash::new(oid.to_string())?;
-                    let node_id = NodeId::new();
-
-                    // Store node mapping
-                    commit_nodes.insert(commit_hash.clone(), node_id);
-
-                    // Create edges to parents
-                    for parent_oid in commit.parent_ids() {
-                        if let Ok(parent_hash) = CommitHash::new(parent_oid.to_string()) {
-                            // Edge will be created when parent is processed
-                            edges.push((commit_hash.clone(), parent_hash));
-                        }
-                    }
-
-                    commit_count += 1;
-                }
-            }
-        }
-
-        // Count edges
-        let edge_count = edges.len();
-
-        // Calculate root commits (commits with no parents in the graph)
-        let mut root_commits = Vec::new();
-        let child_commits: std::collections::HashSet<_> = edges.iter().map(|(_, parent)| parent.clone()).collect();
-        for commit_hash in commit_nodes.keys() {
-            if !child_commits.contains(commit_hash) {
-                root_commits.push(commit_hash.clone());
-            }
-        }
-
-        // Calculate head commits (commits with no children in the graph)
-        let mut head_commits = Vec::new();
-        let parent_commits: std::collections::HashSet<_> = edges.iter().map(|(child, _)| child.clone()).collect();
-        for commit_hash in commit_nodes.keys() {
-            if !parent_commits.contains(commit_hash) {
-                head_commits.push(commit_hash.clone());
-            }
-        }
-
-        let graph_event = CommitGraphExtracted {
-            repository_id: cmd.repository_id,
-            graph_id,
-            commit_count,
-            edge_count,
-            root_commits,
-            head_commits,
-            timestamp: Utc::now(),
-        };
-
-        Ok(vec![GitDomainEvent::CommitGraphExtracted(graph_event)])
-    }
+    // TODO: Extract commit graph functionality has been removed
+    // This was dependent on cim_domain_graph which is no longer available
 
     /// Get repository by ID
     pub fn get_repository(&self, id: &RepositoryId) -> Option<Repository> {
@@ -383,137 +266,8 @@ impl Default for RepositoryCommandHandler {
     }
 }
 
-/// Extract dependency graph from repository
-pub async fn extract_dependency_graph(
-    cmd: ExtractDependencyGraph,
-    git_repo: &Git2Repository,
-) -> Result<Vec<GitDomainEvent>, GitDomainError> {
-    info!(
-        "Extracting dependency graph for repository: {:?}",
-        cmd.repository_id
-    );
-
-    let graph_id = GraphId::new();
-    let mut file_count = 0;
-    let mut dependency_count = 0;
-    let analyzer = crate::dependency_analysis::DependencyAnalyzer::new();
-
-    // Get HEAD commit or specified commit
-    let commit = if let Some(commit_hash) = &cmd.commit_hash {
-        let oid = Oid::from_str(commit_hash.as_str()).map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Invalid commit: {e}"))
-        })?;
-        git_repo.find_commit(oid).map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Commit not found: {e}"))
-        })?
-    } else {
-        let head = git_repo.head().map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to get HEAD: {e}"))
-        })?;
-        head.peel_to_commit().map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to get HEAD commit: {e}"))
-        })?
-    };
-
-    let tree = commit.tree().map_err(|e| {
-        GitDomainError::GitOperationFailed(format!("Failed to get tree: {e}"))
-    })?;
-
-    // Determine language filter
-    let language_filter = cmd.language.as_ref().map(|lang| match lang.to_lowercase().as_str() {
-        "rust" => Language::Rust,
-        "python" => Language::Python,
-        "javascript" | "js" => Language::JavaScript,
-        "typescript" | "ts" => Language::TypeScript,
-        "java" => Language::Java,
-        "go" => Language::Go,
-        "c" => Language::C,
-        "cpp" | "c++" => Language::Cpp,
-        other => Language::Other(other.to_string()),
-    });
-
-    // Walk tree and analyze files
-    tree.walk(git2::TreeWalkMode::PreOrder, |path, entry| {
-        if let Some(name) = entry.name() {
-            let full_path = if path.is_empty() {
-                name.to_string()
-            } else {
-                format!("{path}/{name}")
-            };
-
-            // Check against include/exclude patterns
-            let should_include = if cmd.include_patterns.is_empty() {
-                true
-            } else {
-                cmd.include_patterns.iter().any(|pattern| {
-                    // Simple pattern matching - could be enhanced with regex
-                    full_path.contains(pattern) || full_path.ends_with(pattern)
-                })
-            };
-
-            let should_exclude = cmd
-                .exclude_patterns
-                .iter()
-                .any(|pattern| full_path.contains(pattern) || full_path.ends_with(pattern));
-
-            if should_include && !should_exclude && entry.kind() == Some(git2::ObjectType::Blob)
-            {
-                // Get file extension and check language filter
-                let extension = Path::new(&full_path)
-                    .extension()
-                    .and_then(|ext| ext.to_str());
-                
-                if let Some(ext) = extension {
-                    let file_language = Language::from_extension(ext);
-                    
-                    // Skip if language filter doesn't match
-                    if let Some(ref filter_lang) = language_filter {
-                        if &file_language != filter_lang {
-                            return git2::TreeWalkResult::Ok;
-                        }
-                    }
-                    
-                    // Analyze file for dependencies
-                    if let Ok(blob) = git_repo.find_blob(entry.id()) {
-                        if let Ok(content) = std::str::from_utf8(blob.content()) {
-                            // Check if it's a manifest file
-                            let file_name = Path::new(&full_path)
-                                .file_name()
-                                .and_then(|n| n.to_str())
-                                .unwrap_or("");
-                            
-                            let dependencies = if matches!(file_name, "Cargo.toml" | "package.json" | "requirements.txt" | "go.mod") {
-                                analyzer.analyze_manifest(content, file_name)
-                            } else {
-                                analyzer.analyze_file(content, &file_language)
-                            };
-                            
-                            if let Ok(deps) = dependencies {
-                                dependency_count += deps.len();
-                            }
-                        }
-                    }
-                    
-                    file_count += 1;
-                }
-            }
-        }
-        git2::TreeWalkResult::Ok
-    })
-    .map_err(|e| GitDomainError::GitOperationFailed(format!("Failed to walk tree: {e}")))?;
-
-    let graph_event = DependencyGraphExtracted {
-        repository_id: cmd.repository_id,
-        graph_id,
-        commit_hash: CommitHash::new(commit.id().to_string())?,
-        file_count,
-        dependency_count,
-        language: cmd.language,
-        timestamp: Utc::now(),
-    };
-
-    Ok(vec![GitDomainEvent::DependencyGraphExtracted(graph_event)])
-}
+// TODO: Extract dependency graph functionality has been removed
+// This was dependent on cim_domain_graph which is no longer available
 
 #[cfg(test)]
 mod tests {

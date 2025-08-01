@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Basic tests for cim-domain-git module structure
 
 use cim_domain_git::{

@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Read model projections for the Git domain
 //!
 //! This module contains projections that build read models

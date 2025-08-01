@@ -1,9 +1,11 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Integration tests for Git domain with real repositories
 
 use cim_domain_git::{
     commands::*,
     events::{FileChangeType, GitDomainEvent},
-    handlers::{extract_dependency_graph, RepositoryCommandHandler},
+    handlers::RepositoryCommandHandler,
 };
 use git2::{Repository, Signature};
 use std::fs;
@@ -141,76 +143,7 @@ async fn test_analyze_real_repository() {
     assert!(stored_repo.is_some());
 }
 
-#[tokio::test]
-async fn test_extract_commit_graph_from_real_repo() {
-    let temp_dir = create_test_repo();
-    let handler = RepositoryCommandHandler::new();
-
-    // First analyze the repository
-    let (repo_id, _) = handler
-        .analyze_repository_at_path(temp_dir.path().to_str().unwrap())
-        .await
-        .unwrap();
-
-    // Extract commit graph
-    let cmd = ExtractCommitGraph {
-        repository_id: repo_id,
-        start_commit: None,
-        max_depth: Some(10),
-        include_all_branches: true,
-        include_tags: true,
-    };
-
-    let events = handler.extract_commit_graph(cmd).await.unwrap();
-
-    assert_eq!(events.len(), 1);
-    if let GitDomainEvent::CommitGraphExtracted(event) = &events[0] {
-        assert_eq!(event.repository_id, repo_id);
-        assert_eq!(event.commit_count, 2);
-        assert_eq!(event.edge_count, 1); // One parent-child relationship
-        assert_eq!(event.root_commits.len(), 1); // One root commit
-        assert_eq!(event.head_commits.len(), 1); // One head commit
-    } else {
-        panic!("Expected CommitGraphExtracted event");
-    }
-}
-
-#[tokio::test]
-async fn test_extract_dependency_graph_from_real_repo() {
-    let temp_dir = create_test_repo();
-    let handler = RepositoryCommandHandler::new();
-
-    // First analyze the repository
-    let (repo_id, _) = handler
-        .analyze_repository_at_path(temp_dir.path().to_str().unwrap())
-        .await
-        .unwrap();
-
-    // Get the repository to access git2 repo
-    let repo = handler.get_repository(&repo_id).unwrap();
-    let git_repo = Repository::open(repo.local_path.as_ref().unwrap()).unwrap();
-
-    // Extract dependency graph
-    let cmd = ExtractDependencyGraph {
-        repository_id: repo_id,
-        commit_hash: None,
-        language: Some("rust".to_string()),
-        include_patterns: vec![],
-        exclude_patterns: vec![],
-    };
-
-    let events = extract_dependency_graph(cmd, &git_repo).await.unwrap();
-
-    assert_eq!(events.len(), 1);
-    if let GitDomainEvent::DependencyGraphExtracted(event) = &events[0] {
-        assert_eq!(event.repository_id, repo_id);
-        assert_eq!(event.file_count, 2); // main.rs and lib.rs
-        assert!(event.dependency_count > 0); // Should find serde imports
-        assert_eq!(event.language, Some("rust".to_string()));
-    } else {
-        panic!("Expected DependencyGraphExtracted event");
-    }
-}
+// Graph-related tests have been removed as the graph functionality was removed from the codebase
 
 #[tokio::test]
 async fn test_file_change_tracking() {

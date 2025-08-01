@@ -1,3 +1,5 @@
+<!-- Copyright 2025 Cowboy AI, LLC. -->
+
 # Git Domain Implementation Plan
 
 ## Phase 1: Core Infrastructure (Week 1)

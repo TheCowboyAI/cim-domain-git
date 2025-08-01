@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Domain events for the Git domain
 //!
 //! Events represent facts that have occurred in the Git domain.
@@ -6,7 +8,6 @@
 use crate::aggregate::RepositoryId;
 use crate::value_objects::{AuthorInfo, BranchName, CommitHash, FilePath, RemoteUrl, TagName};
 use chrono::{DateTime, Utc};
-use cim_domain_graph::GraphId;
 use serde::{Deserialize, Serialize};
 
 /// Enumeration of all Git domain events
@@ -27,12 +28,6 @@ pub enum GitDomainEvent {
 
     /// A tag was created
     TagCreated(TagCreated),
-
-    /// A commit graph was extracted
-    CommitGraphExtracted(CommitGraphExtracted),
-
-    /// A file dependency graph was extracted
-    DependencyGraphExtracted(DependencyGraphExtracted),
 
     /// Repository metadata was updated
     RepositoryMetadataUpdated(RepositoryMetadataUpdated),
@@ -172,56 +167,6 @@ pub struct TagCreated {
 
     /// Tagger information (if annotated)
     pub tagger: Option<AuthorInfo>,
-
-    /// Timestamp of the event
-    pub timestamp: DateTime<Utc>,
-}
-
-/// Event: A commit graph was extracted
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CommitGraphExtracted {
-    /// Repository ID
-    pub repository_id: RepositoryId,
-
-    /// Graph ID in the graph domain
-    pub graph_id: GraphId,
-
-    /// Number of commits (nodes) in the graph
-    pub commit_count: usize,
-
-    /// Number of parent-child relationships (edges)
-    pub edge_count: usize,
-
-    /// Root commits (no parents)
-    pub root_commits: Vec<CommitHash>,
-
-    /// Head commits (no children)
-    pub head_commits: Vec<CommitHash>,
-
-    /// Timestamp of the event
-    pub timestamp: DateTime<Utc>,
-}
-
-/// Event: A file dependency graph was extracted
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DependencyGraphExtracted {
-    /// Repository ID
-    pub repository_id: RepositoryId,
-
-    /// Graph ID in the graph domain
-    pub graph_id: GraphId,
-
-    /// Commit hash this analysis is based on
-    pub commit_hash: CommitHash,
-
-    /// Number of files (nodes) in the graph
-    pub file_count: usize,
-
-    /// Number of dependencies (edges)
-    pub dependency_count: usize,
-
-    /// Programming language analyzed
-    pub language: Option<String>,
 
     /// Timestamp of the event
     pub timestamp: DateTime<Utc>,

@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Dependency analysis for Git repositories
 //!
 //! This module provides functionality to analyze files and extract

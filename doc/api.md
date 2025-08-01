@@ -1,3 +1,5 @@
+<!-- Copyright 2025 Cowboy AI, LLC. -->
+
 # Git API Documentation
 
 ## Overview

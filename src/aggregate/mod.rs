@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Aggregates for the Git domain
 //!
 //! This module contains the aggregate roots that maintain consistency

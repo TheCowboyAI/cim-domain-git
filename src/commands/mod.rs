@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Commands for the Git domain
 //!
 //! Commands represent intentions to change the state of the Git domain.
@@ -124,92 +126,68 @@ impl Command for AnalyzeCommit {
     }
 }
 
-/// Extract the commit graph from a repository
-///
-/// This command extracts the commit graph structure, showing the relationships
-/// between commits, branches, and merge points.
-///
-/// # Examples
-///
-/// ```
-/// use cim_domain_git::commands::ExtractCommitGraph;
-/// use cim_domain_git::aggregate::RepositoryId;
-/// use cim_domain_git::value_objects::CommitHash;
-///
-/// let repo_id = RepositoryId::new();
-///
-/// // Extract full commit graph
-/// let full_graph = ExtractCommitGraph {
-///     repository_id: repo_id,
-///     start_commit: None, // Start from HEAD
-///     max_depth: None, // No depth limit
-///     include_all_branches: true,
-///     include_tags: true,
-/// };
-///
-/// // Extract limited graph from specific commit
-/// let limited_graph = ExtractCommitGraph {
-///     repository_id: repo_id,
-///     start_commit: Some(CommitHash::new("abc123def").unwrap()),
-///     max_depth: Some(100), // Limit to 100 commits
-///     include_all_branches: false,
-///     include_tags: false,
-/// };
-///
-/// assert_eq!(limited_graph.max_depth, Some(100));
-/// ```
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractCommitGraph {
-    /// Repository ID
-    pub repository_id: RepositoryId,
+// TODO: ExtractCommitGraph has been removed
+// This was dependent on cim_domain_graph which is no longer available
+//
+// /// Extract the commit graph from a repository
+// ///
+// /// This command extracts the commit graph structure, showing the relationships
+// /// between commits, branches, and merge points.
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct ExtractCommitGraph {
+//     /// Repository ID
+//     pub repository_id: RepositoryId,
+//
+//     /// Starting commit (defaults to HEAD)
+//     pub start_commit: Option<CommitHash>,
+//
+//     /// Maximum depth to traverse
+//     pub max_depth: Option<u32>,
+//
+//     /// Whether to include all branches
+//     pub include_all_branches: bool,
+//
+//     /// Whether to include tags
+//     pub include_tags: bool,
+// }
+//
+// impl Command for ExtractCommitGraph {
+//     type Aggregate = Repository;
+//
+//     fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+//         Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+//     }
+// }
 
-    /// Starting commit (defaults to HEAD)
-    pub start_commit: Option<CommitHash>,
-
-    /// Maximum depth to traverse
-    pub max_depth: Option<u32>,
-
-    /// Whether to include all branches
-    pub include_all_branches: bool,
-
-    /// Whether to include tags
-    pub include_tags: bool,
-}
-
-impl Command for ExtractCommitGraph {
-    type Aggregate = Repository;
-
-    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
-        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
-    }
-}
-
-/// Extract file dependency graph
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ExtractDependencyGraph {
-    /// Repository ID
-    pub repository_id: RepositoryId,
-
-    /// Commit to analyze (defaults to HEAD)
-    pub commit_hash: Option<CommitHash>,
-
-    /// File patterns to include
-    pub include_patterns: Vec<String>,
-
-    /// File patterns to exclude
-    pub exclude_patterns: Vec<String>,
-
-    /// Programming language to analyze
-    pub language: Option<String>,
-}
-
-impl Command for ExtractDependencyGraph {
-    type Aggregate = Repository;
-
-    fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
-        Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
-    }
-}
+// TODO: ExtractDependencyGraph has been removed
+// This was dependent on cim_domain_graph which is no longer available
+//
+// /// Extract file dependency graph
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// pub struct ExtractDependencyGraph {
+//     /// Repository ID
+//     pub repository_id: RepositoryId,
+//
+//     /// Commit to analyze (defaults to HEAD)
+//     pub commit_hash: Option<CommitHash>,
+//
+//     /// File patterns to include
+//     pub include_patterns: Vec<String>,
+//
+//     /// File patterns to exclude
+//     pub exclude_patterns: Vec<String>,
+//
+//     /// Programming language to analyze
+//     pub language: Option<String>,
+// }
+//
+// impl Command for ExtractDependencyGraph {
+//     type Aggregate = Repository;
+//
+//     fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
+//         Some(EntityId::from_uuid(*self.repository_id.as_uuid()))
+//     }
+// }
 
 /// Create a new branch
 #[derive(Debug, Clone, Serialize, Deserialize)]

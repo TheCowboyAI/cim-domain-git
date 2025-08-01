@@ -1,49 +1,16 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! CQRS adapter for Git domain handlers
 
-use crate::commands::{ExtractCommitGraph, CloneRepository, AnalyzeCommit, ExtractDependencyGraph, CreateBranch, DeleteBranch, CreateTag, AnalyzeRepository, FetchRemote, AnalyzeFileHistory, CompareBranches, SearchRepository, GitHubIntegration};
+use crate::commands::{CloneRepository, AnalyzeCommit, CreateBranch, DeleteBranch, CreateTag, AnalyzeRepository, FetchRemote, AnalyzeFileHistory, CompareBranches, SearchRepository, GitHubIntegration};
+// TODO: ExtractCommitGraph and ExtractDependencyGraph have been removed
 use crate::handlers::RepositoryCommandHandler;
 use cim_domain::{
     CommandHandler, CommandEnvelope, CommandAcknowledgment, CommandStatus,
 };
 
-/// CQRS adapter for `ExtractCommitGraph` command
-pub struct ExtractCommitGraphHandler {
-    repository_handler: RepositoryCommandHandler,
-}
-
-impl ExtractCommitGraphHandler {
-    /// Create a new `ExtractCommitGraphHandler` with the given repository handler
-    pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
-        Self { repository_handler }
-    }
-}
-
-impl CommandHandler<ExtractCommitGraph> for ExtractCommitGraphHandler {
-    fn handle(&mut self, envelope: CommandEnvelope<ExtractCommitGraph>) -> CommandAcknowledgment {
-        let command = envelope.command;
-        
-        // Use tokio to run the async method
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        let result = runtime.block_on(async {
-            self.repository_handler.extract_commit_graph(command).await
-        });
-
-        match result {
-            Ok(_events) => CommandAcknowledgment {
-                command_id: envelope.id,
-                correlation_id: envelope.identity.correlation_id,
-                status: CommandStatus::Accepted,
-                reason: None,
-            },
-            Err(e) => CommandAcknowledgment {
-                command_id: envelope.id,
-                correlation_id: envelope.identity.correlation_id,
-                status: CommandStatus::Rejected,
-                reason: Some(format!("Failed to extract commit graph: {e}")),
-            }
-        }
-    }
-}
+// TODO: ExtractCommitGraphHandler has been removed
+// This was dependent on cim_domain_graph which is no longer available
 
 /// CQRS adapter for `CloneRepository` command
 pub struct CloneRepositoryHandler {
@@ -125,44 +92,8 @@ impl CommandHandler<AnalyzeCommit> for AnalyzeCommitHandler {
     }
 }
 
-/// CQRS adapter for `ExtractDependencyGraph` command
-pub struct ExtractDependencyGraphHandler {
-    repository_handler: RepositoryCommandHandler,
-}
-
-impl ExtractDependencyGraphHandler {
-    /// Create a new `ExtractDependencyGraphHandler` with the given repository handler
-    pub fn new(repository_handler: RepositoryCommandHandler) -> Self {
-        Self { repository_handler }
-    }
-}
-
-impl CommandHandler<ExtractDependencyGraph> for ExtractDependencyGraphHandler {
-    fn handle(&mut self, envelope: CommandEnvelope<ExtractDependencyGraph>) -> CommandAcknowledgment {
-        let command = envelope.command;
-        
-        // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
-        match repo {
-            Some(_) => {
-                // In a full implementation, would extract dependency graph
-                CommandAcknowledgment {
-                    command_id: envelope.id,
-                    correlation_id: envelope.identity.correlation_id,
-                    status: CommandStatus::Accepted,
-                    reason: None,
-                }
-            }
-            None => CommandAcknowledgment {
-                command_id: envelope.id,
-                correlation_id: envelope.identity.correlation_id,
-                status: CommandStatus::Rejected,
-                reason: Some("Repository not found".to_string()),
-            }
-        }
-    }
-}
+// TODO: ExtractDependencyGraphHandler has been removed
+// This was dependent on cim_domain_graph which is no longer available
 
 /// CQRS adapter for `CreateBranch` command
 pub struct CreateBranchHandler {

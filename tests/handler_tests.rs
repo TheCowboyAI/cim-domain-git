@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Handler integration tests for cim-domain-git
 //!
 //! Tests the CQRS adapters and command handling functionality.
@@ -35,26 +37,7 @@ fn create_test_envelope<T>(command: T) -> CommandEnvelope<T> {
     }
 }
 
-#[test]
-fn test_extract_commit_graph_handler() {
-    let repo_handler = RepositoryCommandHandler::new();
-    let mut handler = ExtractCommitGraphHandler::new(repo_handler);
-
-    let command = ExtractCommitGraph {
-        repository_id: RepositoryId::new(),
-        start_commit: None,
-        max_depth: Some(10),
-        include_all_branches: true,
-        include_tags: false,
-    };
-
-    let envelope = create_test_envelope(command);
-    let ack = handler.handle(envelope);
-
-    // Since repository doesn't exist, it should be rejected
-    assert_eq!(ack.status, CommandStatus::Rejected);
-    assert!(ack.reason.is_some());
-}
+// Graph-related handlers have been removed as the graph functionality was removed from the codebase
 
 #[test]
 fn test_clone_repository_handler() {
@@ -274,22 +257,4 @@ fn test_github_integration_handler() {
     assert_eq!(ack.reason, Some("Repository not found".to_string()));
 }
 
-#[test]
-fn test_extract_dependency_graph_handler() {
-    let repo_handler = RepositoryCommandHandler::new();
-    let mut handler = ExtractDependencyGraphHandler::new(repo_handler);
-
-    let command = ExtractDependencyGraph {
-        repository_id: RepositoryId::new(),
-        commit_hash: None,
-        include_patterns: vec!["*.rs".to_string()],
-        exclude_patterns: vec!["target/".to_string()],
-        language: Some("rust".to_string()),
-    };
-
-    let envelope = create_test_envelope(command);
-    let ack = handler.handle(envelope);
-
-    assert_eq!(ack.status, CommandStatus::Rejected);
-    assert_eq!(ack.reason, Some("Repository not found".to_string()));
-}
+// ExtractDependencyGraphHandler test removed - graph functionality has been removed from the codebase

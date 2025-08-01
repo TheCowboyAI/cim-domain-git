@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Security utilities for Git domain
 //!
 //! This module provides security checks and validation

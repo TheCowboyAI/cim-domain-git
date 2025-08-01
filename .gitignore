@@ -1,0 +1,52 @@
+# Rust
+target/
+Cargo.lock
+**/*.rs.bk
+*.pdb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Nix
+result
+result-*
+
+# Testing
+tarpaulin-report.html
+cobertura.xml
+coverage/
+test-results/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Documentation
+/target/doc
+/target/criterion
+
+# Benchmarking
+/target/criterion
+
+# Examples output
+examples/output/
+
+# Local environment
+.env
+.env.local
+
+# Backup files
+*.bak
+*.backup
+
+# Log files
+*.log

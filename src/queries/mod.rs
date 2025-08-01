@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Query handlers for the Git domain
 //!
 //! This module contains query handlers that read from projections

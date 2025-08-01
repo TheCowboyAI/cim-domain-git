@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! Event handling tests for cim-domain-git
 //!
 //! Tests event creation, serialization, and aggregate event application.
@@ -173,53 +175,7 @@ fn test_aggregate_event_application() {
     assert_eq!(repo.metadata.commit_count, Some(1));
 }
 
-#[test]
-fn test_commit_graph_extracted_event() {
-    let event = CommitGraphExtracted {
-        repository_id: RepositoryId::new(),
-        graph_id: cim_domain_graph::GraphId::new(),
-        commit_count: 100,
-        edge_count: 99,
-        root_commits: vec![CommitHash::new("abc123def456789").unwrap()],
-        head_commits: vec![CommitHash::new("def456abc789012").unwrap()],
-        timestamp: Utc::now(),
-    };
-
-    // Test serialization
-    let json = serde_json::to_string(&event).unwrap();
-    let deserialized: CommitGraphExtracted = serde_json::from_str(&json).unwrap();
-
-    assert_eq!(deserialized.repository_id, event.repository_id);
-    assert_eq!(deserialized.graph_id, event.graph_id);
-    assert_eq!(deserialized.commit_count, event.commit_count);
-    assert_eq!(deserialized.edge_count, event.edge_count);
-    assert_eq!(deserialized.root_commits, event.root_commits);
-    assert_eq!(deserialized.head_commits, event.head_commits);
-}
-
-#[test]
-fn test_dependency_graph_extracted_event() {
-    let event = DependencyGraphExtracted {
-        repository_id: RepositoryId::new(),
-        graph_id: cim_domain_graph::GraphId::new(),
-        commit_hash: CommitHash::new("abc123def456789").unwrap(),
-        file_count: 50,
-        dependency_count: 120,
-        language: Some("rust".to_string()),
-        timestamp: Utc::now(),
-    };
-
-    // Test serialization
-    let json = serde_json::to_string(&event).unwrap();
-    let deserialized: DependencyGraphExtracted = serde_json::from_str(&json).unwrap();
-
-    assert_eq!(deserialized.repository_id, event.repository_id);
-    assert_eq!(deserialized.graph_id, event.graph_id);
-    assert_eq!(deserialized.commit_hash, event.commit_hash);
-    assert_eq!(deserialized.file_count, event.file_count);
-    assert_eq!(deserialized.dependency_count, event.dependency_count);
-    assert_eq!(deserialized.language, event.language);
-}
+// Graph-related event tests have been removed as the graph functionality was removed from the codebase
 
 #[test]
 fn test_tag_created_event() {

@@ -1,3 +1,5 @@
+// Copyright 2025 Cowboy AI, LLC.
+
 //! # CIM Git Domain
 //!
 //! This module provides Git repository introspection and graph extraction capabilities
@@ -23,9 +25,9 @@
 //!
 //! ## Integration Points
 //!
-//! - **cim-domain-graph**: Converts Git structures to graph representations
-//! - **cim-domain-document**: Extracts and processes documentation from repositories
-//! - **cim-domain-agent**: Enables agent-based Git operations through MCP
+//! - **Graph Domain**: Converts Git structures to graph representations (temporarily using local types)
+//! - **Document Domain**: Extracts and processes documentation from repositories (pending integration)
+//! - **Agent Domain**: Enables agent-based Git operations through MCP (pending integration)
 //!
 //! ## Examples
 //!
@@ -125,7 +127,9 @@ pub mod projections;
 pub mod queries;
 pub mod security;
 pub mod value_objects;
-pub mod dependency_analysis;
+// TODO: dependency_analysis module has been disabled
+// This was used by the removed graph extraction functionality
+// pub mod dependency_analysis;
 pub mod cache;
 
 // Re-export commonly used types
