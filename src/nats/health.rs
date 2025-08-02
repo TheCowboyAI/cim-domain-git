@@ -305,6 +305,7 @@ pub struct NatsHealthCheck {
 }
 
 impl NatsHealthCheck {
+    /// Create a new NATS health check with the given client
     pub fn new(client: Client) -> Self {
         Self { client }
     }

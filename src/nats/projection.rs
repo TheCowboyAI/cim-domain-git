@@ -275,13 +275,20 @@ pub struct RepositoryStatsProjection {
     stats: Arc<RwLock<HashMap<String, RepositoryStats>>>,
 }
 
+/// Statistics about a git repository
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RepositoryStats {
+    /// The unique ID of the repository
     pub repository_id: String,
+    /// Total number of commits
     pub commit_count: usize,
+    /// Total number of branches
     pub branch_count: usize,
+    /// Total number of tags
     pub tag_count: usize,
+    /// Timestamp of the most recent commit
     pub last_commit_time: Option<DateTime<Utc>>,
+    /// Total number of files analyzed
     pub total_files_analyzed: usize,
 }
 

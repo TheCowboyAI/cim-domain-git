@@ -184,7 +184,9 @@ impl Default for JetStreamConfig {
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum StorageType {
+    /// Store JetStream data on disk
     File,
+    /// Store JetStream data in memory
     Memory,
 }
 

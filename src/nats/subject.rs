@@ -15,10 +15,15 @@ pub const DOMAIN: &str = "git";
 /// Aggregate types in the Git domain
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Aggregate {
+    /// Repository aggregate - manages repository lifecycle
     Repository,
+    /// Commit aggregate - represents git commits
     Commit,
+    /// Branch aggregate - manages git branches
     Branch,
+    /// Tag aggregate - manages git tags
     Tag,
+    /// Remote aggregate - manages git remotes
     Remote,
 }
 
@@ -37,8 +42,11 @@ impl fmt::Display for Aggregate {
 /// Message types following CIM conventions
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MessageType {
+    /// Command messages that trigger actions
     Command,
+    /// Event messages that record what happened
     Event,
+    /// Query messages that request information
     Query,
 }
 
@@ -56,29 +64,42 @@ impl fmt::Display for MessageType {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandAction {
     // Repository commands
+    /// Clone a repository from a remote URL
     CloneRepository,
+    /// Delete a repository and all its data
     DeleteRepository,
 
     // Commit commands
+    /// Analyze a specific commit for metadata
     AnalyzeCommit,
 
     // Branch commands
+    /// Create a new branch
     CreateBranch,
+    /// Delete an existing branch
     DeleteBranch,
+    /// Merge one branch into another
     MergeBranch,
 
     // Tag commands
+    /// Create a new tag
     CreateTag,
+    /// Delete an existing tag
     DeleteTag,
 
     // Remote commands
+    /// Add a new remote repository
     AddRemote,
+    /// Remove an existing remote
     RemoveRemote,
+    /// Fetch updates from a remote
     FetchRemote,
+    /// Push changes to a remote
     PushRemote,
 }
 
 impl CommandAction {
+    /// Get the string representation of the command action
     pub fn as_str(&self) -> &'static str {
         match self {
             // Repository commands
@@ -105,6 +126,7 @@ impl CommandAction {
         }
     }
 
+    /// Get the aggregate type this command belongs to
     pub fn aggregate(&self) -> Aggregate {
         match self {
             CommandAction::CloneRepository | CommandAction::DeleteRepository => {
@@ -131,36 +153,52 @@ impl CommandAction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EventAction {
     // Repository events
+    /// A repository was cloned from a remote
     RepositoryCloned,
+    /// A repository was deleted
     RepositoryDeleted,
+    /// A repository was analyzed for metadata
     RepositoryAnalyzed,
 
     // Commit events
+    /// A commit was analyzed for metadata
     CommitAnalyzed,
 
     // Branch events
+    /// A branch was created
     BranchCreated,
+    /// A branch was deleted
     BranchDeleted,
+    /// A branch was merged into another
     BranchMerged,
 
     // Tag events
+    /// A tag was created
     TagCreated,
+    /// A tag was deleted
     TagDeleted,
 
     // Remote events
+    /// A remote was added to the repository
     RemoteAdded,
+    /// A remote was removed from the repository
     RemoteRemoved,
+    /// Changes were fetched from a remote
     RemoteFetched,
+    /// Changes were pushed to a remote
     RemotePushed,
 
     // File events
+    /// A file was analyzed for changes
     FileAnalyzed,
 
     // Merge events
+    /// A merge operation was detected
     MergeDetected,
 }
 
 impl EventAction {
+    /// Get the string representation of the event action
     pub fn as_str(&self) -> &'static str {
         match self {
             // Repository events
@@ -194,6 +232,7 @@ impl EventAction {
         }
     }
 
+    /// Get the aggregate type this event belongs to
     pub fn aggregate(&self) -> Aggregate {
         match self {
             EventAction::RepositoryCloned
@@ -222,27 +261,38 @@ impl EventAction {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum QueryAction {
     // Repository queries
+    /// Get a specific repository by ID
     GetRepository,
+    /// List all repositories
     ListRepositories,
+    /// Get detailed information about a repository
     GetRepositoryDetails,
 
     // Commit queries
+    /// Get a specific commit by hash
     GetCommit,
+    /// Get the commit history for a repository
     GetCommitHistory,
 
     // Branch queries
+    /// Get a specific branch by name
     GetBranch,
+    /// List all branches in a repository
     ListBranches,
 
     // Tag queries
+    /// Get a specific tag by name
     GetTag,
+    /// List all tags in a repository
     ListTags,
 
     // File queries
+    /// Get file changes for a commit or between commits
     GetFileChanges,
 }
 
 impl QueryAction {
+    /// Get the string representation of the query action
     pub fn as_str(&self) -> &'static str {
         match self {
             // Repository queries
@@ -267,6 +317,7 @@ impl QueryAction {
         }
     }
 
+    /// Get the aggregate type this query belongs to
     pub fn aggregate(&self) -> Aggregate {
         match self {
             QueryAction::GetRepository
