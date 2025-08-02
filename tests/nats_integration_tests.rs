@@ -84,10 +84,11 @@ impl EventHandler for TestEventHandler {
 }
 
 async fn setup_nats() -> cim_domain_git::nats::Result<NatsClient> {
-    let config = NatsConfig {
+    let mut config = NatsConfig {
         url: "nats://localhost:4222".to_string(),
         ..Default::default()
     };
+    config.jetstream.enabled = true;
 
     NatsClient::connect(config).await
 }
@@ -327,11 +328,14 @@ async fn test_health_monitoring() {
     assert_eq!(health_update["service"]["name"], "test-git-service");
     assert_eq!(health_update["status"], "healthy");
 
-    // Clean up
+    // Clean up - abort the health service task
     health_handle.abort();
     
-    // Give time for abort to complete
-    tokio::time::sleep(Duration::from_millis(100)).await;
+    // Wait for the task to finish and ignore the JoinError from abort
+    let _ = health_handle.await;
+    
+    // Flush client before closing
+    client.flush().await.unwrap();
 }
 
 #[tokio::test]

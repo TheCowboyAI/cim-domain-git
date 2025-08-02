@@ -6,26 +6,26 @@ Copyright 2025 Cowboy AI, LLC.
 
 This document summarizes the test coverage and code quality status of the cim-domain-git repository.
 
-**Last Updated**: 2025-08-02
+**Last Updated**: 2025-08-02 (Updated with integration test fixes)
 
 ## Current Status
 - Total tests: 104 (97 active, 7 ignored)
 - All library tests: ✅ PASSING (93 tests, 0 errors, 0 failures)
 - Handler tests: ✅ PASSING (11 tests)
 - Integration tests with NATS server at localhost:4222:
-  - nats_integration_test: ✅ 5/6 tests passing
+  - nats_integration_test: ✅ 6/6 tests passing
     - ✅ test_nats_connection (fixed is_connected)
     - ✅ test_event_publishing
     - ✅ test_event_subscription  
     - ✅ test_subject_routing
     - ✅ test_command_handling (simplified to test publish/subscribe)
-    - ⚠️ test_jetstream_integration (stream creation works, publish fails)
-  - nats_integration_tests: ✅ Simplified tests passing
+    - ✅ test_jetstream_integration (fixed by creating stream before publish)
+  - nats_integration_tests: 5 tests (need JetStream config update)
     - ✅ test_command_acknowledgment
-    - ✅ test_event_store_append_and_replay (simplified - appends work)
-    - ✅ test_projection_updates (simplified - appends work)
-    - ⚠️ test_health_monitoring (health service works but cleanup has issues)
-    - ✅ test_correlation_tracking (simplified - correlation verified)
+    - ⚠️ test_event_store_append_and_replay (needs JetStream enabled)
+    - ⚠️ test_projection_updates (needs JetStream enabled)
+    - ⚠️ test_health_monitoring (cleanup timing issues)
+    - ⚠️ test_correlation_tracking (needs JetStream enabled)
 - Compilation: ✅ FIXED (0 errors)
 - Warnings: 66 (mostly missing documentation)
 - async-nats version: 0.42
@@ -156,7 +156,7 @@ These tests require external services:
 ### Future Improvements
 1. **Code Coverage Tool**: Install and use cargo-tarpaulin for detailed metrics
 2. **Property-Based Testing**: Expand use of proptest for value objects
-3. **Integration Test Suite**: Add comprehensive NATS JetStream tests
+3. **Integration Test Suite**: Continue improving NATS JetStream tests
 4. **Performance Tests**: Add benchmarks for critical paths
 
 ### Next Steps
@@ -173,6 +173,7 @@ These tests require external services:
    - No `connection_state()` method (fixed by assuming connected)
    - No explicit `close()` method (using `flush()` instead)
    - JetStream API changes handled successfully
+   - Stream creation must happen before publishing to JetStream (fixed in tests)
 
 ### What's Working with NATS Server
 - ✅ Basic NATS pub/sub operations
@@ -190,6 +191,8 @@ These tests require external services:
 2. **Removed request/response patterns** - Changed to simple pub/sub which aligns with actual command handling architecture
 3. **Focused on append operations** - Since EventStore is primarily used for appending events in production
 4. **Used unique stream names** - Prevents conflicts between test runs
+5. **Fixed JetStream integration** - Create streams before publishing
+6. **Added JetStream config** - Enabled JetStream in test configuration
 
 ## Running Tests
 

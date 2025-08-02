@@ -178,7 +178,17 @@ async fn test_jetstream_integration() {
     // Get JetStream context
     let jetstream = client.jetstream().await.unwrap();
 
-    // Publish to stream
+    // Create the stream first
+    let stream_config = async_nats::jetstream::stream::Config {
+        name: stream_name.clone(),
+        subjects: vec!["git.event.>".to_string()],
+        ..Default::default()
+    };
+    
+    // Create stream
+    let _ = jetstream.create_stream(stream_config).await.unwrap();
+
+    // Now publish to stream
     let subject = GitSubject::event(EventAction::RepositoryCloned).to_string();
     let event = serde_json::json!({
         "event_type": "RepositoryCloned",
@@ -186,14 +196,26 @@ async fn test_jetstream_integration() {
         "timestamp": Utc::now().to_rfc3339()
     });
 
-    jetstream
+    let ack = jetstream
         .publish(subject, serde_json::to_vec(&event).unwrap().into())
         .await
+        .unwrap()
+        .await
         .unwrap();
+    
+    // Verify the message was stored
+    assert!(ack.sequence > 0);
+    
+    // Get stream to verify
+    let mut stream = jetstream.get_stream(&stream_name).await.unwrap();
+    let info = stream.info().await.unwrap();
+    assert_eq!(info.state.messages, 1);
 
     // Clean up - delete test stream
     let _ = jetstream.delete_stream(&stream_name).await;
-    client.close().await.unwrap();
+    
+    // Flush any pending messages before closing
+    let _ = client.flush().await;
 }
 
 #[tokio::test]
