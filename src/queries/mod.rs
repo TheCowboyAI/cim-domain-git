@@ -7,9 +7,8 @@
 
 use crate::aggregate::RepositoryId;
 use crate::projections::{
+    BranchInfo, BranchStatusProjection, CommitHistoryEntry, CommitHistoryProjection,
     RepositoryListProjection, RepositorySummary,
-    CommitHistoryProjection, CommitHistoryEntry,
-    BranchStatusProjection, BranchInfo,
 };
 use crate::value_objects::BranchName;
 use cim_domain::Query;
@@ -99,7 +98,8 @@ pub struct GitQueryHandler {
 
 impl GitQueryHandler {
     /// Create a new query handler
-    #[must_use] pub fn new(
+    #[must_use]
+    pub fn new(
         repository_projection: Arc<RepositoryListProjection>,
         commit_projection: Arc<CommitHistoryProjection>,
         branch_projection: Arc<BranchStatusProjection>,
@@ -117,17 +117,20 @@ impl GitQueryHandler {
         query: GetRepositoryDetails,
     ) -> Result<RepositoryDetailsResult, QueryError> {
         // Get repository summary
-        let summary = self.repository_projection
+        let summary = self
+            .repository_projection
             .get_by_id(&query.repository_id)
             .map_err(|e| QueryError::ProjectionError(e.to_string()))?;
 
         // Get recent commits (limit to 10)
-        let recent_commits = self.commit_projection
+        let recent_commits = self
+            .commit_projection
             .get_history(&query.repository_id, Some(10))
             .map_err(|e| QueryError::ProjectionError(e.to_string()))?;
 
         // Get branches
-        let branches = self.branch_projection
+        let branches = self
+            .branch_projection
             .get_branches(&query.repository_id)
             .map_err(|e| QueryError::ProjectionError(e.to_string()))?;
 
@@ -144,10 +147,11 @@ impl GitQueryHandler {
         query: GetCommitHistory,
     ) -> Result<CommitHistoryResult, QueryError> {
         // Get full history to count
-        let all_commits = self.commit_projection
+        let all_commits = self
+            .commit_projection
             .get_history(&query.repository_id, None)
             .map_err(|e| QueryError::ProjectionError(e.to_string()))?;
-        
+
         let total_count = all_commits.len();
 
         // Get limited history if requested
@@ -170,12 +174,14 @@ impl GitQueryHandler {
         &self,
         query: GetBranchList,
     ) -> Result<BranchListResult, QueryError> {
-        let branches = self.branch_projection
+        let branches = self
+            .branch_projection
             .get_branches(&query.repository_id)
             .map_err(|e| QueryError::ProjectionError(e.to_string()))?;
 
         // Find default branch
-        let default_branch = branches.iter()
+        let default_branch = branches
+            .iter()
             .find(|b| b.is_default)
             .map(|b| b.name.clone());
 
@@ -202,8 +208,6 @@ impl GitQueryHandler {
 
         Ok(ListRepositoriesResult { repositories })
     }
-
-
 }
 
 /// Error type for query operations
@@ -233,7 +237,7 @@ pub enum QueryError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::{GitDomainEvent, RepositoryAnalyzed, CommitAnalyzed, BranchCreated};
+    use crate::events::{BranchCreated, CommitAnalyzed, GitDomainEvent, RepositoryAnalyzed};
     use crate::value_objects::{AuthorInfo, CommitHash};
     use chrono::Utc;
 
@@ -289,7 +293,9 @@ mod tests {
         branch_projection.handle_event(&branch_event).unwrap();
 
         // Query repository details
-        let query = GetRepositoryDetails { repository_id: repo_id };
+        let query = GetRepositoryDetails {
+            repository_id: repo_id,
+        };
         let result = handler.handle_get_repository_details(query).await.unwrap();
 
         // Verify results
@@ -327,7 +333,9 @@ mod tests {
         }
 
         // Query all repositories
-        let query = ListRepositories { remote_url_pattern: None };
+        let query = ListRepositories {
+            remote_url_pattern: None,
+        };
         let result = handler.handle_list_repositories(query).await.unwrap();
 
         // Verify results

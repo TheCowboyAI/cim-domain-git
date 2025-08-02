@@ -8,6 +8,9 @@
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
+#[cfg(test)]
+mod tests;
+
 /// Represents a Git commit hash
 ///
 /// Commit hashes must be valid hexadecimal strings with a minimum length
@@ -60,12 +63,14 @@ impl CommitHash {
     }
 
     /// Get the hash as a string
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 
     /// Get a short version of the hash (first 7 characters)
-    #[must_use] pub fn short(&self) -> &str {
+    #[must_use]
+    pub fn short(&self) -> &str {
         &self.0[..7.min(self.0.len())]
     }
 }
@@ -133,12 +138,14 @@ impl BranchName {
     }
 
     /// Get the branch name as a string
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 
     /// Check if this is the main/master branch
-    #[must_use] pub fn is_default(&self) -> bool {
+    #[must_use]
+    pub fn is_default(&self) -> bool {
         matches!(self.0.as_str(), "main" | "master")
     }
 }
@@ -202,12 +209,14 @@ impl RemoteUrl {
     }
 
     /// Get the URL as a string
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 
     /// Extract the repository name from the URL
-    #[must_use] pub fn repository_name(&self) -> Option<&str> {
+    #[must_use]
+    pub fn repository_name(&self) -> Option<&str> {
         self.0
             .split('/')
             .next_back()
@@ -215,7 +224,8 @@ impl RemoteUrl {
     }
 
     /// Check if this is a GitHub URL
-    #[must_use] pub fn is_github(&self) -> bool {
+    #[must_use]
+    pub fn is_github(&self) -> bool {
         self.0.contains("github.com")
     }
 }
@@ -294,12 +304,14 @@ impl TagName {
     }
 
     /// Get the tag name as a string
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 
     /// Check if this looks like a semantic version tag
-    #[must_use] pub fn is_semver(&self) -> bool {
+    #[must_use]
+    pub fn is_semver(&self) -> bool {
         self.0.starts_with('v') && self.0[1..].chars().next().is_some_and(char::is_numeric)
     }
 }
@@ -367,22 +379,26 @@ impl FilePath {
     }
 
     /// Get the path as a string
-    #[must_use] pub fn as_str(&self) -> &str {
+    #[must_use]
+    pub fn as_str(&self) -> &str {
         &self.0
     }
 
     /// Get the file name (last component)
-    #[must_use] pub fn file_name(&self) -> Option<&str> {
+    #[must_use]
+    pub fn file_name(&self) -> Option<&str> {
         self.0.split('/').next_back()
     }
 
     /// Get the directory path
-    #[must_use] pub fn directory(&self) -> Option<&str> {
+    #[must_use]
+    pub fn directory(&self) -> Option<&str> {
         self.0.rfind('/').map(|idx| &self.0[..idx])
     }
 
     /// Get the file extension
-    #[must_use] pub fn extension(&self) -> Option<&str> {
+    #[must_use]
+    pub fn extension(&self) -> Option<&str> {
         self.file_name()
             .and_then(|name| name.rfind('.'))
             .and_then(|idx| {
@@ -398,49 +414,86 @@ impl fmt::Display for FilePath {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+/// Represents a Git commit message
+///
+/// Commit messages must be non-empty and are typically structured with
+/// a summary line followed by an optional body.
+///
+/// # Examples
+///
+/// ```
+/// use cim_domain_git::value_objects::CommitMessage;
+///
+/// // Simple message
+/// let msg = CommitMessage::new("Fix typo in README").unwrap();
+/// assert_eq!(msg.summary(), "Fix typo in README");
+/// assert_eq!(msg.body(), None);
+///
+/// // Message with body
+/// let msg = CommitMessage::new("feat: Add new feature\n\nThis adds support for...").unwrap();
+/// assert_eq!(msg.summary(), "feat: Add new feature");
+/// assert!(msg.body().is_some());
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct CommitMessage(String);
 
-    #[test]
-    fn test_commit_hash_validation() {
-        // Valid hashes
-        assert!(CommitHash::new("abc123def456").is_ok());
-        assert!(CommitHash::new("1234567890abcdef1234567890abcdef12345678").is_ok());
-
-        // Invalid hashes
-        assert!(CommitHash::new("short").is_err());
-        assert!(CommitHash::new("not-hex-chars").is_err());
-        assert!(CommitHash::new("").is_err());
+impl CommitMessage {
+    /// Create a new commit message
+    pub fn new(message: impl Into<String>) -> Result<Self, crate::GitDomainError> {
+        let message = message.into();
+        let trimmed = message.trim();
+        
+        if trimmed.is_empty() {
+            return Err(crate::GitDomainError::GitOperationFailed(
+                "Commit message cannot be empty".to_string(),
+            ));
+        }
+        
+        Ok(Self(trimmed.to_string()))
     }
-
-    #[test]
-    fn test_branch_name_validation() {
-        // Valid names
-        assert!(BranchName::new("main").is_ok());
-        assert!(BranchName::new("feature/new-feature").is_ok());
-
-        // Invalid names
-        assert!(BranchName::new("").is_err());
-        assert!(BranchName::new("branch..name").is_err());
-        assert!(BranchName::new("branch/").is_err());
+    
+    /// Get the summary line (first line)
+    #[must_use]
+    pub fn summary(&self) -> &str {
+        self.0.lines().next().unwrap_or(&self.0)
     }
-
-    #[test]
-    fn test_remote_url_parsing() {
-        let url = RemoteUrl::new("https://github.com/user/repo.git").unwrap();
-        assert_eq!(url.repository_name(), Some("repo"));
-        assert!(url.is_github());
-
-        let ssh_url = RemoteUrl::new("git@github.com:user/repo.git").unwrap();
-        assert!(ssh_url.is_github());
+    
+    /// Get the body (everything after the first line)
+    #[must_use]
+    pub fn body(&self) -> Option<&str> {
+        let first_newline = self.0.find('\n')?;
+        let after_first = &self.0[first_newline + 1..];
+        
+        // Skip empty line between summary and body
+        let body_start = if after_first.starts_with('\n') {
+            first_newline + 2
+        } else {
+            first_newline + 1
+        };
+        
+        if body_start < self.0.len() {
+            let body = &self.0[body_start..];
+            let trimmed = body.trim();
+            if trimmed.is_empty() {
+                None
+            } else {
+                Some(body)
+            }
+        } else {
+            None
+        }
     }
-
-    #[test]
-    fn test_file_path_parsing() {
-        let path = FilePath::new("src/lib.rs").unwrap();
-        assert_eq!(path.file_name(), Some("lib.rs"));
-        assert_eq!(path.directory(), Some("src"));
-        assert_eq!(path.extension(), Some("rs"));
+    
+    /// Get the full message
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        &self.0
     }
 }
+
+impl fmt::Display for CommitMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+

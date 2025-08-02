@@ -64,7 +64,8 @@ impl Command for CloneRepository {
     type Aggregate = Repository;
 
     fn aggregate_id(&self) -> Option<EntityId<Self::Aggregate>> {
-        self.repository_id.map(|id| EntityId::from_uuid(*id.as_uuid()))
+        self.repository_id
+            .map(|id| EntityId::from_uuid(*id.as_uuid()))
     }
 }
 
@@ -126,7 +127,7 @@ impl Command for AnalyzeCommit {
     }
 }
 
-// TODO: ExtractCommitGraph has been removed
+// Note: ExtractCommitGraph command has been removed
 // This was dependent on cim_domain_graph which is no longer available
 //
 // /// Extract the commit graph from a repository
@@ -159,7 +160,7 @@ impl Command for AnalyzeCommit {
 //     }
 // }
 
-// TODO: ExtractDependencyGraph has been removed
+// Note: ExtractDependencyGraph command has been removed
 // This was dependent on cim_domain_graph which is no longer available
 //
 // /// Extract file dependency graph
@@ -422,6 +423,26 @@ pub enum GitHubOperation {
     SyncReleases,
     /// Sync workflows
     SyncWorkflows,
+}
+
+/// Enumeration of all Git domain commands
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "command_type")]
+pub enum GitCommand {
+    /// Clone a repository
+    CloneRepository(CloneRepository),
+    /// Analyze a repository
+    AnalyzeRepository(AnalyzeRepository),
+    /// Analyze a specific commit
+    AnalyzeCommit(AnalyzeCommit),
+    /// Create a branch
+    CreateBranch(CreateBranch),
+    /// Delete a branch
+    DeleteBranch(DeleteBranch),
+    /// Create a tag
+    CreateTag(CreateTag),
+    /// Search repository
+    SearchRepository(SearchRepository),
 }
 
 #[cfg(test)]

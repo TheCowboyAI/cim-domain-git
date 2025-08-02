@@ -5,13 +5,14 @@
 //! This module contains the aggregate roots that maintain consistency
 //! boundaries for Git-related operations.
 
-use crate::GitDomainError;
 use crate::events::{GitDomainEvent, RepositoryCloned};
 use crate::value_objects::{AuthorInfo, BranchName, CommitHash, RemoteUrl};
+use crate::GitDomainError;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
+
 
 /// Unique identifier for a repository
 ///
@@ -39,17 +40,20 @@ pub struct RepositoryId(Uuid);
 
 impl RepositoryId {
     /// Create a new repository ID
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
     /// Create from an existing UUID
-    #[must_use] pub fn from_uuid(uuid: Uuid) -> Self {
+    #[must_use]
+    pub fn from_uuid(uuid: Uuid) -> Self {
         Self(uuid)
     }
 
     /// Get the inner UUID
-    #[must_use] pub fn as_uuid(&self) -> &Uuid {
+    #[must_use]
+    pub fn as_uuid(&self) -> &Uuid {
         &self.0
     }
 }
@@ -57,6 +61,18 @@ impl RepositoryId {
 impl Default for RepositoryId {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl From<Uuid> for RepositoryId {
+    fn from(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+}
+
+impl std::fmt::Display for RepositoryId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
@@ -162,7 +178,8 @@ pub struct RepositoryMetadata {
 
 impl Repository {
     /// Create a new repository aggregate
-    #[must_use] pub fn new(name: String) -> Self {
+    #[must_use]
+    pub fn new(name: String) -> Self {
         let now = Utc::now();
         Self {
             id: RepositoryId::new(),

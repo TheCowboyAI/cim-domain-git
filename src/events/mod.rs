@@ -5,10 +5,17 @@
 //! Events represent facts that have occurred in the Git domain.
 //! All events are immutable and represent past occurrences.
 
+pub mod envelope;
+pub mod metadata;
+
 use crate::aggregate::RepositoryId;
 use crate::value_objects::{AuthorInfo, BranchName, CommitHash, FilePath, RemoteUrl, TagName};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+
+// Re-export commonly used types
+pub use envelope::{EventEnvelope, EventEnvelopeBuilder};
+pub use metadata::{CorrelationContext, EventMetadata, WithMetadata};
 
 /// Enumeration of all Git domain events
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -293,6 +300,11 @@ pub struct RepositoryAnalyzed {
 }
 
 #[cfg(test)]
+mod envelope_tests;
+#[cfg(test)]
+mod metadata_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -312,7 +324,7 @@ mod tests {
             GitDomainEvent::RepositoryCloned(e) => {
                 assert_eq!(e.local_path, "/tmp/repo");
             }
-            _ => panic!("Wrong event type"),
+            _ => unreachable!("Expected RepositoryCloned event"),
         }
     }
 }

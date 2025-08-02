@@ -2,14 +2,15 @@
 
 //! CQRS adapter for Git domain handlers
 
-use crate::commands::{CloneRepository, AnalyzeCommit, CreateBranch, DeleteBranch, CreateTag, AnalyzeRepository, FetchRemote, AnalyzeFileHistory, CompareBranches, SearchRepository, GitHubIntegration};
-// TODO: ExtractCommitGraph and ExtractDependencyGraph have been removed
-use crate::handlers::RepositoryCommandHandler;
-use cim_domain::{
-    CommandHandler, CommandEnvelope, CommandAcknowledgment, CommandStatus,
+use crate::commands::{
+    AnalyzeCommit, AnalyzeFileHistory, AnalyzeRepository, CloneRepository, CompareBranches,
+    CreateBranch, CreateTag, DeleteBranch, FetchRemote, GitHubIntegration, SearchRepository,
 };
+// Note: ExtractCommitGraph and ExtractDependencyGraph have been removed
+use crate::handlers::RepositoryCommandHandler;
+use cim_domain::{CommandAcknowledgment, CommandEnvelope, CommandHandler, CommandStatus};
 
-// TODO: ExtractCommitGraphHandler has been removed
+// Note: ExtractCommitGraphHandler has been removed
 // This was dependent on cim_domain_graph which is no longer available
 
 /// CQRS adapter for `CloneRepository` command
@@ -27,13 +28,15 @@ impl CloneRepositoryHandler {
 impl CommandHandler<CloneRepository> for CloneRepositoryHandler {
     fn handle(&mut self, envelope: CommandEnvelope<CloneRepository>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Clone repository using git2
         let runtime = tokio::runtime::Runtime::new().unwrap();
         let result = runtime.block_on(async {
             // For now, analyze the repository at the given path
             // In a full implementation, this would actually clone from remote
-            self.repository_handler.analyze_repository_at_path(&command.local_path).await
+            self.repository_handler
+                .analyze_repository_at_path(&command.local_path)
+                .await
         });
 
         match result {
@@ -48,7 +51,7 @@ impl CommandHandler<CloneRepository> for CloneRepositoryHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some(format!("Failed to clone repository: {e}")),
-            }
+            },
         }
     }
 }
@@ -68,10 +71,12 @@ impl AnalyzeCommitHandler {
 impl CommandHandler<AnalyzeCommit> for AnalyzeCommitHandler {
     fn handle(&mut self, envelope: CommandEnvelope<AnalyzeCommit>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Get repository and analyze specific commit
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would analyze the specific commit
@@ -87,12 +92,12 @@ impl CommandHandler<AnalyzeCommit> for AnalyzeCommitHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
 
-// TODO: ExtractDependencyGraphHandler has been removed
+// Note: ExtractDependencyGraphHandler has been removed
 // This was dependent on cim_domain_graph which is no longer available
 
 /// CQRS adapter for `CreateBranch` command
@@ -110,10 +115,12 @@ impl CreateBranchHandler {
 impl CommandHandler<CreateBranch> for CreateBranchHandler {
     fn handle(&mut self, envelope: CommandEnvelope<CreateBranch>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would create the branch
@@ -129,7 +136,7 @@ impl CommandHandler<CreateBranch> for CreateBranchHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -149,10 +156,12 @@ impl DeleteBranchHandler {
 impl CommandHandler<DeleteBranch> for DeleteBranchHandler {
     fn handle(&mut self, envelope: CommandEnvelope<DeleteBranch>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would delete the branch
@@ -168,7 +177,7 @@ impl CommandHandler<DeleteBranch> for DeleteBranchHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -188,10 +197,12 @@ impl CreateTagHandler {
 impl CommandHandler<CreateTag> for CreateTagHandler {
     fn handle(&mut self, envelope: CommandEnvelope<CreateTag>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would create the tag
@@ -207,7 +218,7 @@ impl CommandHandler<CreateTag> for CreateTagHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -227,17 +238,21 @@ impl AnalyzeRepositoryHandler {
 impl CommandHandler<AnalyzeRepository> for AnalyzeRepositoryHandler {
     fn handle(&mut self, envelope: CommandEnvelope<AnalyzeRepository>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Get repository by ID
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(repository) => {
                 if let Some(path) = repository.local_path {
                     // Analyze repository at the path
                     let runtime = tokio::runtime::Runtime::new().unwrap();
                     let result = runtime.block_on(async {
-                        self.repository_handler.analyze_repository_at_path(&path).await
+                        self.repository_handler
+                            .analyze_repository_at_path(&path)
+                            .await
                     });
 
                     match result {
@@ -252,7 +267,7 @@ impl CommandHandler<AnalyzeRepository> for AnalyzeRepositoryHandler {
                             correlation_id: envelope.identity.correlation_id,
                             status: CommandStatus::Rejected,
                             reason: Some(format!("Failed to analyze repository: {e}")),
-                        }
+                        },
                     }
                 } else {
                     CommandAcknowledgment {
@@ -268,7 +283,7 @@ impl CommandHandler<AnalyzeRepository> for AnalyzeRepositoryHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -288,10 +303,12 @@ impl FetchRemoteHandler {
 impl CommandHandler<FetchRemote> for FetchRemoteHandler {
     fn handle(&mut self, envelope: CommandEnvelope<FetchRemote>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would fetch from remote
@@ -307,7 +324,7 @@ impl CommandHandler<FetchRemote> for FetchRemoteHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -327,10 +344,12 @@ impl AnalyzeFileHistoryHandler {
 impl CommandHandler<AnalyzeFileHistory> for AnalyzeFileHistoryHandler {
     fn handle(&mut self, envelope: CommandEnvelope<AnalyzeFileHistory>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would analyze file history
@@ -346,7 +365,7 @@ impl CommandHandler<AnalyzeFileHistory> for AnalyzeFileHistoryHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -366,10 +385,12 @@ impl CompareBranchesHandler {
 impl CommandHandler<CompareBranches> for CompareBranchesHandler {
     fn handle(&mut self, envelope: CommandEnvelope<CompareBranches>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would compare branches
@@ -385,7 +406,7 @@ impl CommandHandler<CompareBranches> for CompareBranchesHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -405,10 +426,12 @@ impl SearchRepositoryHandler {
 impl CommandHandler<SearchRepository> for SearchRepositoryHandler {
     fn handle(&mut self, envelope: CommandEnvelope<SearchRepository>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would search the repository
@@ -424,7 +447,7 @@ impl CommandHandler<SearchRepository> for SearchRepositoryHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
 }
@@ -444,10 +467,12 @@ impl GitHubIntegrationHandler {
 impl CommandHandler<GitHubIntegration> for GitHubIntegrationHandler {
     fn handle(&mut self, envelope: CommandEnvelope<GitHubIntegration>) -> CommandAcknowledgment {
         let command = envelope.command;
-        
+
         // Check if repository exists
-        let repo = self.repository_handler.get_repository(&command.repository_id);
-        
+        let repo = self
+            .repository_handler
+            .get_repository(&command.repository_id);
+
         match repo {
             Some(_) => {
                 // In a full implementation, would integrate with GitHub
@@ -463,7 +488,7 @@ impl CommandHandler<GitHubIntegration> for GitHubIntegrationHandler {
                 correlation_id: envelope.identity.correlation_id,
                 status: CommandStatus::Rejected,
                 reason: Some("Repository not found".to_string()),
-            }
+            },
         }
     }
-} 
+}

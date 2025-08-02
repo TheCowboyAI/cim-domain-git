@@ -13,20 +13,20 @@ pub fn validate_path(path: &str) -> Result<PathBuf, GitDomainError> {
     // Check for null bytes
     if path.contains('\0') {
         return Err(GitDomainError::ValidationError(
-            "Path contains null bytes".to_string()
+            "Path contains null bytes".to_string(),
         ));
     }
 
     // Check for common path traversal patterns
     if path.contains("..") || path.contains('~') {
         return Err(GitDomainError::ValidationError(
-            "Path contains directory traversal patterns".to_string()
+            "Path contains directory traversal patterns".to_string(),
         ));
     }
 
     // Convert to PathBuf and canonicalize
     let path_buf = PathBuf::from(path);
-    
+
     // Check if path is absolute
     if path_buf.is_absolute() {
         // For absolute paths, ensure they're within allowed directories
@@ -43,26 +43,31 @@ pub fn validate_remote_url(url: &str) -> Result<(), GitDomainError> {
     // Check for null bytes
     if url.contains('\0') {
         return Err(GitDomainError::ValidationError(
-            "URL contains null bytes".to_string()
+            "URL contains null bytes".to_string(),
         ));
     }
 
     // Check for shell metacharacters that could lead to command injection
-    let dangerous_chars = ['$', '`', '|', ';', '&', '<', '>', '(', ')', '{', '}', '\n', '\r'];
+    let dangerous_chars = [
+        '$', '`', '|', ';', '&', '<', '>', '(', ')', '{', '}', '\n', '\r',
+    ];
     for ch in dangerous_chars {
         if url.contains(ch) {
-            return Err(GitDomainError::ValidationError(
-                format!("URL contains dangerous character: {ch}")
-            ));
+            return Err(GitDomainError::ValidationError(format!(
+                "URL contains dangerous character: {ch}"
+            )));
         }
     }
 
     // Validate URL scheme
-    if !url.starts_with("https://") && !url.starts_with("http://") && 
-       !url.starts_with("git://") && !url.starts_with("ssh://") &&
-       !url.starts_with("git@") {
+    if !url.starts_with("https://")
+        && !url.starts_with("http://")
+        && !url.starts_with("git://")
+        && !url.starts_with("ssh://")
+        && !url.starts_with("git@")
+    {
         return Err(GitDomainError::ValidationError(
-            "URL must use a valid Git protocol".to_string()
+            "URL must use a valid Git protocol".to_string(),
         ));
     }
 
@@ -74,36 +79,38 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
     // Check for null bytes
     if name.contains('\0') {
         return Err(GitDomainError::ValidationError(
-            "Branch name contains null bytes".to_string()
+            "Branch name contains null bytes".to_string(),
         ));
     }
 
     // Check for shell metacharacters
-    let dangerous_chars = ['$', '`', '|', ';', '&', '<', '>', '(', ')', '{', '}', '\n', '\r', ' '];
+    let dangerous_chars = [
+        '$', '`', '|', ';', '&', '<', '>', '(', ')', '{', '}', '\n', '\r', ' ',
+    ];
     for ch in dangerous_chars {
         if name.contains(ch) {
-            return Err(GitDomainError::ValidationError(
-                format!("Branch name contains dangerous character: {ch}")
-            ));
+            return Err(GitDomainError::ValidationError(format!(
+                "Branch name contains dangerous character: {ch}"
+            )));
         }
     }
 
     // Check Git-specific invalid patterns
     if name.starts_with('-') {
         return Err(GitDomainError::ValidationError(
-            "Branch name cannot start with hyphen".to_string()
+            "Branch name cannot start with hyphen".to_string(),
         ));
     }
 
     if name.ends_with(".lock") {
         return Err(GitDomainError::ValidationError(
-            "Branch name cannot end with .lock".to_string()
+            "Branch name cannot end with .lock".to_string(),
         ));
     }
 
     if name.contains("..") || name.contains("//") {
         return Err(GitDomainError::ValidationError(
-            "Branch name contains invalid patterns".to_string()
+            "Branch name contains invalid patterns".to_string(),
         ));
     }
 
@@ -111,7 +118,8 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
 }
 
 /// Sanitize user input for use in error messages
-#[must_use] pub fn sanitize_for_display(input: &str) -> String {
+#[must_use]
+pub fn sanitize_for_display(input: &str) -> String {
     // Remove control characters and limit length
     input
         .chars()
@@ -168,9 +176,12 @@ mod tests {
     fn test_sanitize_for_display() {
         assert_eq!(sanitize_for_display("normal text"), "normal text");
         assert_eq!(sanitize_for_display("text\0with\0nulls"), "textwithnulls");
-        assert_eq!(sanitize_for_display("text\nwith\nnewlines"), "text\nwith\nnewlines");
-        
+        assert_eq!(
+            sanitize_for_display("text\nwith\nnewlines"),
+            "text\nwith\nnewlines"
+        );
+
         let long_text = "a".repeat(200);
         assert_eq!(sanitize_for_display(&long_text).len(), 100);
     }
-} 
+}

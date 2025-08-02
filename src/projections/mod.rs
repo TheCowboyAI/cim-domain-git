@@ -6,9 +6,9 @@
 //! from the event stream for efficient querying.
 
 use crate::aggregate::RepositoryId;
+use crate::events::FileChangeType;
 use crate::events::GitDomainEvent;
-use crate::value_objects::{BranchName, CommitHash, RemoteUrl, AuthorInfo, FilePath};
-use crate::events::{FileChangeType};
+use crate::value_objects::{AuthorInfo, BranchName, CommitHash, FilePath, RemoteUrl};
 use chrono::{DateTime, Utc};
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock};
@@ -39,7 +39,8 @@ pub struct RepositoryListProjection {
 
 impl RepositoryListProjection {
     /// Create a new repository list projection
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             repositories: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -47,15 +48,21 @@ impl RepositoryListProjection {
 
     /// Handle a domain event to update the projection
     pub fn handle_event(&self, event: &GitDomainEvent) -> Result<(), ProjectionError> {
-        let mut repos = self.repositories.write()
+        let mut repos = self
+            .repositories
+            .write()
             .map_err(|_| ProjectionError::LockPoisoned)?;
 
         match event {
             GitDomainEvent::RepositoryCloned(e) => {
-                let summary = repos.entry(e.repository_id)
+                let summary = repos
+                    .entry(e.repository_id)
                     .or_insert_with(|| RepositorySummary {
                         id: e.repository_id,
-                        name: e.local_path.split('/').next_back()
+                        name: e
+                            .local_path
+                            .split('/')
+                            .next_back()
                             .unwrap_or("unknown")
                             .to_string(),
                         remote_url: None,
@@ -64,13 +71,14 @@ impl RepositoryListProjection {
                         commit_count: 0,
                         last_updated: e.timestamp,
                     });
-                
+
                 summary.remote_url = Some(e.remote_url.clone());
                 summary.local_path = Some(e.local_path.clone());
                 summary.last_updated = e.timestamp;
             }
             GitDomainEvent::RepositoryAnalyzed(e) => {
-                let summary = repos.entry(e.repository_id)
+                let summary = repos
+                    .entry(e.repository_id)
                     .or_insert_with(|| RepositorySummary {
                         id: e.repository_id,
                         name: e.name.clone(),
@@ -80,7 +88,7 @@ impl RepositoryListProjection {
                         commit_count: 0,
                         last_updated: e.timestamp,
                     });
-                
+
                 summary.name = e.name.clone();
                 summary.local_path = Some(e.path.clone());
                 summary.branch_count = e.branch_count;
@@ -107,28 +115,44 @@ impl RepositoryListProjection {
 
     /// Get all repositories
     pub fn get_all(&self) -> Result<Vec<RepositorySummary>, ProjectionError> {
-        let repos = self.repositories.read()
+        let repos = self
+            .repositories
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
+
         Ok(repos.values().cloned().collect())
     }
 
     /// Get a specific repository summary
-    pub fn get_by_id(&self, id: &RepositoryId) -> Result<Option<RepositorySummary>, ProjectionError> {
-        let repos = self.repositories.read()
+    pub fn get_by_id(
+        &self,
+        id: &RepositoryId,
+    ) -> Result<Option<RepositorySummary>, ProjectionError> {
+        let repos = self
+            .repositories
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
+
         Ok(repos.get(id).cloned())
     }
 
     /// Get repositories by remote URL pattern
-    pub fn find_by_remote_url(&self, pattern: &str) -> Result<Vec<RepositorySummary>, ProjectionError> {
-        let repos = self.repositories.read()
+    pub fn find_by_remote_url(
+        &self,
+        pattern: &str,
+    ) -> Result<Vec<RepositorySummary>, ProjectionError> {
+        let repos = self
+            .repositories
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
-        Ok(repos.values()
-            .filter(|r| r.remote_url.as_ref()
-                .is_some_and(|url| url.as_str().contains(pattern)))
+
+        Ok(repos
+            .values()
+            .filter(|r| {
+                r.remote_url
+                    .as_ref()
+                    .is_some_and(|url| url.as_str().contains(pattern))
+            })
             .cloned()
             .collect())
     }
@@ -167,7 +191,8 @@ pub struct CommitHistoryProjection {
 
 impl CommitHistoryProjection {
     /// Create a new commit history projection
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             commits: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -176,12 +201,13 @@ impl CommitHistoryProjection {
     /// Handle a domain event to update the projection
     pub fn handle_event(&self, event: &GitDomainEvent) -> Result<(), ProjectionError> {
         if let GitDomainEvent::CommitAnalyzed(e) = event {
-            let mut commits = self.commits.write()
+            let mut commits = self
+                .commits
+                .write()
                 .map_err(|_| ProjectionError::LockPoisoned)?;
-            
-            let history = commits.entry(e.repository_id)
-                .or_insert_with(Vec::new);
-            
+
+            let history = commits.entry(e.repository_id).or_insert_with(Vec::new);
+
             history.push(CommitHistoryEntry {
                 hash: e.commit_hash.clone(),
                 parents: e.parents.clone(),
@@ -191,19 +217,25 @@ impl CommitHistoryProjection {
                 timestamp: e.commit_timestamp,
                 files_changed: e.files_changed.len(),
             });
-            
+
             // Keep commits sorted by timestamp (newest first)
             history.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
         }
-        
+
         Ok(())
     }
 
     /// Get commit history for a repository
-    pub fn get_history(&self, repository_id: &RepositoryId, limit: Option<usize>) -> Result<Vec<CommitHistoryEntry>, ProjectionError> {
-        let commits = self.commits.read()
+    pub fn get_history(
+        &self,
+        repository_id: &RepositoryId,
+        limit: Option<usize>,
+    ) -> Result<Vec<CommitHistoryEntry>, ProjectionError> {
+        let commits = self
+            .commits
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
+
         if let Some(history) = commits.get(repository_id) {
             let result = if let Some(limit) = limit {
                 history.iter().take(limit).cloned().collect()
@@ -217,10 +249,16 @@ impl CommitHistoryProjection {
     }
 
     /// Get a specific commit
-    pub fn get_commit(&self, repository_id: &RepositoryId, hash: &CommitHash) -> Result<Option<CommitHistoryEntry>, ProjectionError> {
-        let commits = self.commits.read()
+    pub fn get_commit(
+        &self,
+        repository_id: &RepositoryId,
+        hash: &CommitHash,
+    ) -> Result<Option<CommitHistoryEntry>, ProjectionError> {
+        let commits = self
+            .commits
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
+
         if let Some(history) = commits.get(repository_id) {
             Ok(history.iter().find(|c| &c.hash == hash).cloned())
         } else {
@@ -256,7 +294,8 @@ pub struct BranchStatusProjection {
 
 impl BranchStatusProjection {
     /// Create a new branch status projection
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             branches: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -265,28 +304,37 @@ impl BranchStatusProjection {
     /// Handle a domain event to update the projection
     pub fn handle_event(&self, event: &GitDomainEvent) -> Result<(), ProjectionError> {
         if let GitDomainEvent::BranchCreated(e) = event {
-            let mut branches = self.branches.write()
+            let mut branches = self
+                .branches
+                .write()
                 .map_err(|_| ProjectionError::LockPoisoned)?;
-            
-            let repo_branches = branches.entry(e.repository_id)
-                .or_insert_with(HashMap::new);
-            
-            repo_branches.insert(e.branch_name.clone(), BranchInfo {
-                name: e.branch_name.clone(),
-                head: e.commit_hash.clone(),
-                is_default: e.branch_name.is_default(),
-                last_updated: e.timestamp,
-            });
+
+            let repo_branches = branches.entry(e.repository_id).or_insert_with(HashMap::new);
+
+            repo_branches.insert(
+                e.branch_name.clone(),
+                BranchInfo {
+                    name: e.branch_name.clone(),
+                    head: e.commit_hash.clone(),
+                    is_default: e.branch_name.is_default(),
+                    last_updated: e.timestamp,
+                },
+            );
         }
-        
+
         Ok(())
     }
 
     /// Get all branches for a repository
-    pub fn get_branches(&self, repository_id: &RepositoryId) -> Result<Vec<BranchInfo>, ProjectionError> {
-        let branches = self.branches.read()
+    pub fn get_branches(
+        &self,
+        repository_id: &RepositoryId,
+    ) -> Result<Vec<BranchInfo>, ProjectionError> {
+        let branches = self
+            .branches
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
+
         if let Some(repo_branches) = branches.get(repository_id) {
             Ok(repo_branches.values().cloned().collect())
         } else {
@@ -295,10 +343,16 @@ impl BranchStatusProjection {
     }
 
     /// Get a specific branch
-    pub fn get_branch(&self, repository_id: &RepositoryId, name: &BranchName) -> Result<Option<BranchInfo>, ProjectionError> {
-        let branches = self.branches.read()
+    pub fn get_branch(
+        &self,
+        repository_id: &RepositoryId,
+        name: &BranchName,
+    ) -> Result<Option<BranchInfo>, ProjectionError> {
+        let branches = self
+            .branches
+            .read()
             .map_err(|_| ProjectionError::LockPoisoned)?;
-        
+
         if let Some(repo_branches) = branches.get(repository_id) {
             Ok(repo_branches.get(name).cloned())
         } else {
@@ -361,7 +415,8 @@ pub struct RenameInfo {
 
 impl FileChangeProjection {
     /// Create a new file change projection
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             file_changes: Arc::new(RwLock::new(HashMap::new())),
             commit_changes: Arc::new(RwLock::new(HashMap::new())),
@@ -373,11 +428,17 @@ impl FileChangeProjection {
     pub async fn handle_event(&self, event: &GitDomainEvent) -> Result<(), ProjectionError> {
         match event {
             GitDomainEvent::CommitAnalyzed(event) => {
-                let mut file_changes = self.file_changes.write()
+                let mut file_changes = self
+                    .file_changes
+                    .write()
                     .map_err(|_| ProjectionError::LockError)?;
-                let mut commit_changes = self.commit_changes.write()
+                let mut commit_changes = self
+                    .commit_changes
+                    .write()
                     .map_err(|_| ProjectionError::LockError)?;
-                let mut rename_history = self.rename_history.write()
+                let mut rename_history = self
+                    .rename_history
+                    .write()
                     .map_err(|_| ProjectionError::LockError)?;
 
                 let mut changes_for_commit = Vec::new();
@@ -394,7 +455,8 @@ impl FileChangeProjection {
                     };
 
                     // Track by file path
-                    file_changes.entry(file_change_info.path.clone())
+                    file_changes
+                        .entry(file_change_info.path.clone())
                         .or_insert_with(Vec::new)
                         .push(change.clone());
 
@@ -408,7 +470,8 @@ impl FileChangeProjection {
                             commit_hash: event.commit_hash.clone(),
                             timestamp: event.commit_timestamp,
                         };
-                        rename_history.entry(file_change_info.path.clone())
+                        rename_history
+                            .entry(file_change_info.path.clone())
                             .or_insert_with(Vec::new)
                             .push(rename);
                     }
@@ -427,22 +490,25 @@ impl FileChangeProjection {
 
     /// Get file history for a specific path
     pub fn get_file_history(&self, path: &FilePath) -> Result<Vec<FileChange>, ProjectionError> {
-        let file_changes = self.file_changes.read()
+        let file_changes = self
+            .file_changes
+            .read()
             .map_err(|_| ProjectionError::LockError)?;
 
-        Ok(file_changes.get(path)
-            .cloned()
-            .unwrap_or_default())
+        Ok(file_changes.get(path).cloned().unwrap_or_default())
     }
 
     /// Get all changes in a specific commit
-    pub fn get_commit_changes(&self, commit_hash: &CommitHash) -> Result<Vec<FileChange>, ProjectionError> {
-        let commit_changes = self.commit_changes.read()
+    pub fn get_commit_changes(
+        &self,
+        commit_hash: &CommitHash,
+    ) -> Result<Vec<FileChange>, ProjectionError> {
+        let commit_changes = self
+            .commit_changes
+            .read()
             .map_err(|_| ProjectionError::LockError)?;
 
-        Ok(commit_changes.get(commit_hash)
-            .cloned()
-            .unwrap_or_default())
+        Ok(commit_changes.get(commit_hash).cloned().unwrap_or_default())
     }
 
     /// Get files changed between two commits
@@ -451,24 +517,24 @@ impl FileChangeProjection {
         _from_commit: &CommitHash,
         to_commit: &CommitHash,
     ) -> Result<Vec<FileChange>, ProjectionError> {
-        let commit_changes = self.commit_changes.read()
+        let commit_changes = self
+            .commit_changes
+            .read()
             .map_err(|_| ProjectionError::LockError)?;
 
         // In a real implementation, we'd need to walk the commit graph
         // For now, return changes from the to_commit
-        Ok(commit_changes.get(to_commit)
-            .cloned()
-            .unwrap_or_default())
+        Ok(commit_changes.get(to_commit).cloned().unwrap_or_default())
     }
 
     /// Get rename history for a file
     pub fn get_rename_history(&self, path: &FilePath) -> Result<Vec<RenameInfo>, ProjectionError> {
-        let rename_history = self.rename_history.read()
+        let rename_history = self
+            .rename_history
+            .read()
             .map_err(|_| ProjectionError::LockError)?;
 
-        Ok(rename_history.get(path)
-            .cloned()
-            .unwrap_or_default())
+        Ok(rename_history.get(path).cloned().unwrap_or_default())
     }
 
     /// Get statistics for file changes
@@ -479,9 +545,7 @@ impl FileChangeProjection {
         let total_deletions: usize = changes.iter().map(|c| c.deletions).sum();
         let change_count = changes.len();
 
-        let authors: HashSet<_> = changes.iter()
-            .map(|c| c.author.name.clone())
-            .collect();
+        let authors: HashSet<_> = changes.iter().map(|c| c.author.name.clone()).collect();
 
         Ok(FileStatistics {
             path: path.clone(),
@@ -526,11 +590,11 @@ pub enum ProjectionError {
     /// Lock was poisoned
     #[error("Lock was poisoned")]
     LockPoisoned,
-    
+
     /// Lock error
     #[error("Lock error")]
     LockError,
-    
+
     /// Other projection error
     #[error("Projection error: {0}")]
     Other(String),
@@ -539,14 +603,14 @@ pub enum ProjectionError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::{RepositoryAnalyzed, BranchCreated, CommitAnalyzed, FileChangeInfo};
+    use crate::events::{BranchCreated, CommitAnalyzed, FileChangeInfo, RepositoryAnalyzed};
     use crate::value_objects::{AuthorInfo, FilePath};
 
     #[test]
     fn test_repository_list_projection() {
         let projection = RepositoryListProjection::new();
         let repo_id = RepositoryId::new();
-        
+
         // Handle repository analyzed event
         let event = GitDomainEvent::RepositoryAnalyzed(RepositoryAnalyzed {
             repository_id: repo_id,
@@ -556,13 +620,13 @@ mod tests {
             commit_count: 10,
             timestamp: Utc::now(),
         });
-        
+
         projection.handle_event(&event).unwrap();
-        
+
         // Check projection state
         let repos = projection.get_all().unwrap();
         assert_eq!(repos.len(), 1);
-        
+
         let summary = &repos[0];
         assert_eq!(summary.name, "test-repo");
         assert_eq!(summary.branch_count, 2);
@@ -573,7 +637,7 @@ mod tests {
     fn test_commit_history_projection() {
         let projection = CommitHistoryProjection::new();
         let repo_id = RepositoryId::new();
-        
+
         // Handle commit analyzed event
         let event = GitDomainEvent::CommitAnalyzed(CommitAnalyzed {
             repository_id: repo_id,
@@ -585,13 +649,13 @@ mod tests {
             commit_timestamp: Utc::now(),
             timestamp: Utc::now(),
         });
-        
+
         projection.handle_event(&event).unwrap();
-        
+
         // Check projection state
         let history = projection.get_history(&repo_id, None).unwrap();
         assert_eq!(history.len(), 1);
-        
+
         let commit = &history[0];
         assert_eq!(commit.message, "Test commit");
         assert_eq!(commit.author_name, "Test Author");
@@ -601,7 +665,7 @@ mod tests {
     fn test_branch_status_projection() {
         let projection = BranchStatusProjection::new();
         let repo_id = RepositoryId::new();
-        
+
         // Handle branch created event
         let event = GitDomainEvent::BranchCreated(BranchCreated {
             repository_id: repo_id,
@@ -610,13 +674,13 @@ mod tests {
             source_branch: None,
             timestamp: Utc::now(),
         });
-        
+
         projection.handle_event(&event).unwrap();
-        
+
         // Check projection state
         let branches = projection.get_branches(&repo_id).unwrap();
         assert_eq!(branches.len(), 1);
-        
+
         let branch = &branches[0];
         assert_eq!(branch.name.as_str(), "main");
         assert!(branch.is_default);
@@ -634,14 +698,12 @@ mod tests {
             parents: vec![],
             author: AuthorInfo::new("Test Author".to_string(), "test@example.com".to_string()),
             message: "Test commit".to_string(),
-            files_changed: vec![
-                FileChangeInfo {
-                    path: file_path.clone(),
-                    additions: 10,
-                    deletions: 5,
-                    change_type: FileChangeType::Modified,
-                },
-            ],
+            files_changed: vec![FileChangeInfo {
+                path: file_path.clone(),
+                additions: 10,
+                deletions: 5,
+                change_type: FileChangeType::Modified,
+            }],
             commit_timestamp: Utc::now(),
             timestamp: Utc::now(),
         });

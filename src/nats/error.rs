@@ -10,43 +10,43 @@ pub enum NatsError {
     /// Connection error
     #[error("Connection error: {0}")]
     ConnectionError(String),
-    
+
     /// Subscription error
     #[error("Subscription error: {0}")]
     SubscriptionError(String),
-    
+
     /// Publish error
     #[error("Publish error: {0}")]
     PublishError(String),
-    
+
     /// Serialization error
     #[error("Serialization error: {0}")]
     SerializationError(String),
-    
+
     /// Deserialization error
     #[error("Deserialization error: {0}")]
     DeserializationError(String),
-    
+
     /// Invalid subject
     #[error("Invalid subject: {0}")]
     InvalidSubject(String),
-    
+
     /// Timeout error
-    #[error("Operation timed out: {0}")]
-    Timeout(String),
-    
+    #[error("Operation timed out")]
+    Timeout,
+
     /// Service discovery error
     #[error("Service discovery error: {0}")]
     ServiceDiscoveryError(String),
-    
+
     /// Health check error
     #[error("Health check error: {0}")]
     HealthCheckError(String),
-    
+
     /// Configuration error
     #[error("Configuration error: {0}")]
     ConfigurationError(String),
-    
+
     /// Other errors
     #[error("NATS error: {0}")]
     Other(String),
@@ -54,11 +54,12 @@ pub enum NatsError {
 
 impl From<async_nats::Error> for NatsError {
     fn from(err: async_nats::Error) -> Self {
-        match err.kind() {
-            async_nats::error::ErrorKind::TimedOut => {
-                NatsError::Timeout(err.to_string())
-            }
-            _ => NatsError::Other(err.to_string()),
+        // Check error message for common patterns
+        let err_str = err.to_string();
+        if err_str.contains("timed out") || err_str.contains("timeout") {
+            NatsError::Timeout
+        } else {
+            NatsError::Other(err_str)
         }
     }
 }

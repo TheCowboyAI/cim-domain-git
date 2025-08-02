@@ -29,16 +29,15 @@
 
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
-        # Use the parent directory (workspace root) as source
-        workspaceRoot = ../.;
-        src = craneLib.cleanCargoSource workspaceRoot;
+        # Use the current directory as source
+        src = craneLib.cleanCargoSource (craneLib.path ./.);
 
         commonArgs = {
           inherit src;
           strictDeps = true;
 
-          # Specify the package to build
-          cargoExtraArgs = "-p cim-domain-git";
+          # Build the current package
+          # cargoExtraArgs = "-p cim-domain-git";
 
           buildInputs = with pkgs; [
             # Git2 dependencies
@@ -136,7 +135,10 @@
 
           # Git2 environment variables
           LIBGIT2_SYS_USE_PKG_CONFIG = "1";
-          PKG_CONFIG_PATH = "${pkgs.libgit2}/lib/pkgconfig";
+          PKG_CONFIG_PATH = "${pkgs.libgit2}/lib/pkgconfig:${pkgs.openssl.dev}/lib/pkgconfig";
+          OPENSSL_DIR = "${pkgs.openssl.dev}";
+          OPENSSL_LIB_DIR = "${pkgs.openssl.out}/lib";
+          OPENSSL_INCLUDE_DIR = "${pkgs.openssl.dev}/include";
 
           shellHook = ''
             echo "CIM Domain Git Development Shell"

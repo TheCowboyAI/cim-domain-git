@@ -58,19 +58,19 @@ pub enum CommandAction {
     // Repository commands
     CloneRepository,
     DeleteRepository,
-    
+
     // Commit commands
     AnalyzeCommit,
-    
+
     // Branch commands
     CreateBranch,
     DeleteBranch,
     MergeBranch,
-    
+
     // Tag commands
     CreateTag,
     DeleteTag,
-    
+
     // Remote commands
     AddRemote,
     RemoveRemote,
@@ -84,19 +84,19 @@ impl CommandAction {
             // Repository commands
             CommandAction::CloneRepository => "clone",
             CommandAction::DeleteRepository => "delete",
-            
+
             // Commit commands
             CommandAction::AnalyzeCommit => "analyze",
-            
+
             // Branch commands
             CommandAction::CreateBranch => "create",
             CommandAction::DeleteBranch => "delete",
             CommandAction::MergeBranch => "merge",
-            
+
             // Tag commands
             CommandAction::CreateTag => "create",
             CommandAction::DeleteTag => "delete",
-            
+
             // Remote commands
             CommandAction::AddRemote => "add",
             CommandAction::RemoveRemote => "remove",
@@ -104,21 +104,21 @@ impl CommandAction {
             CommandAction::PushRemote => "push",
         }
     }
-    
+
     pub fn aggregate(&self) -> Aggregate {
         match self {
-            CommandAction::CloneRepository
-            | CommandAction::DeleteRepository => Aggregate::Repository,
-            
+            CommandAction::CloneRepository | CommandAction::DeleteRepository => {
+                Aggregate::Repository
+            }
+
             CommandAction::AnalyzeCommit => Aggregate::Commit,
-            
+
             CommandAction::CreateBranch
             | CommandAction::DeleteBranch
             | CommandAction::MergeBranch => Aggregate::Branch,
-            
-            CommandAction::CreateTag
-            | CommandAction::DeleteTag => Aggregate::Tag,
-            
+
+            CommandAction::CreateTag | CommandAction::DeleteTag => Aggregate::Tag,
+
             CommandAction::AddRemote
             | CommandAction::RemoveRemote
             | CommandAction::FetchRemote
@@ -134,28 +134,28 @@ pub enum EventAction {
     RepositoryCloned,
     RepositoryDeleted,
     RepositoryAnalyzed,
-    
+
     // Commit events
     CommitAnalyzed,
-    
+
     // Branch events
     BranchCreated,
     BranchDeleted,
     BranchMerged,
-    
+
     // Tag events
     TagCreated,
     TagDeleted,
-    
+
     // Remote events
     RemoteAdded,
     RemoteRemoved,
     RemoteFetched,
     RemotePushed,
-    
+
     // File events
     FileAnalyzed,
-    
+
     // Merge events
     MergeDetected,
 }
@@ -167,50 +167,49 @@ impl EventAction {
             EventAction::RepositoryCloned => "cloned",
             EventAction::RepositoryDeleted => "deleted",
             EventAction::RepositoryAnalyzed => "analyzed",
-            
+
             // Commit events
             EventAction::CommitAnalyzed => "analyzed",
-            
+
             // Branch events
             EventAction::BranchCreated => "created",
             EventAction::BranchDeleted => "deleted",
             EventAction::BranchMerged => "merged",
-            
+
             // Tag events
             EventAction::TagCreated => "created",
             EventAction::TagDeleted => "deleted",
-            
+
             // Remote events
             EventAction::RemoteAdded => "added",
             EventAction::RemoteRemoved => "removed",
             EventAction::RemoteFetched => "fetched",
             EventAction::RemotePushed => "pushed",
-            
+
             // File events
             EventAction::FileAnalyzed => "analyzed",
-            
+
             // Merge events
             EventAction::MergeDetected => "detected",
         }
     }
-    
+
     pub fn aggregate(&self) -> Aggregate {
         match self {
             EventAction::RepositoryCloned
             | EventAction::RepositoryDeleted
             | EventAction::RepositoryAnalyzed => Aggregate::Repository,
-            
+
             EventAction::CommitAnalyzed
             | EventAction::FileAnalyzed
             | EventAction::MergeDetected => Aggregate::Commit,
-            
-            EventAction::BranchCreated
-            | EventAction::BranchDeleted
-            | EventAction::BranchMerged => Aggregate::Branch,
-            
-            EventAction::TagCreated
-            | EventAction::TagDeleted => Aggregate::Tag,
-            
+
+            EventAction::BranchCreated | EventAction::BranchDeleted | EventAction::BranchMerged => {
+                Aggregate::Branch
+            }
+
+            EventAction::TagCreated | EventAction::TagDeleted => Aggregate::Tag,
+
             EventAction::RemoteAdded
             | EventAction::RemoteRemoved
             | EventAction::RemoteFetched
@@ -226,19 +225,19 @@ pub enum QueryAction {
     GetRepository,
     ListRepositories,
     GetRepositoryDetails,
-    
+
     // Commit queries
     GetCommit,
     GetCommitHistory,
-    
+
     // Branch queries
     GetBranch,
     ListBranches,
-    
+
     // Tag queries
     GetTag,
     ListTags,
-    
+
     // File queries
     GetFileChanges,
 }
@@ -250,39 +249,37 @@ impl QueryAction {
             QueryAction::GetRepository => "get",
             QueryAction::ListRepositories => "list",
             QueryAction::GetRepositoryDetails => "details",
-            
+
             // Commit queries
             QueryAction::GetCommit => "get",
             QueryAction::GetCommitHistory => "history",
-            
+
             // Branch queries
             QueryAction::GetBranch => "get",
             QueryAction::ListBranches => "list",
-            
+
             // Tag queries
             QueryAction::GetTag => "get",
             QueryAction::ListTags => "list",
-            
+
             // File queries
             QueryAction::GetFileChanges => "changes",
         }
     }
-    
+
     pub fn aggregate(&self) -> Aggregate {
         match self {
             QueryAction::GetRepository
             | QueryAction::ListRepositories
             | QueryAction::GetRepositoryDetails => Aggregate::Repository,
-            
+
             QueryAction::GetCommit
             | QueryAction::GetCommitHistory
             | QueryAction::GetFileChanges => Aggregate::Commit,
-            
-            QueryAction::GetBranch
-            | QueryAction::ListBranches => Aggregate::Branch,
-            
-            QueryAction::GetTag
-            | QueryAction::ListTags => Aggregate::Tag,
+
+            QueryAction::GetBranch | QueryAction::ListBranches => Aggregate::Branch,
+
+            QueryAction::GetTag | QueryAction::ListTags => Aggregate::Tag,
         }
     }
 }
@@ -304,7 +301,7 @@ impl GitSubject {
             action: action.as_str().to_string(),
         }
     }
-    
+
     /// Create an event subject
     pub fn event(action: EventAction) -> Self {
         Self {
@@ -313,7 +310,7 @@ impl GitSubject {
             action: action.as_str().to_string(),
         }
     }
-    
+
     /// Create a query subject
     pub fn query(action: QueryAction) -> Self {
         Self {
@@ -322,12 +319,12 @@ impl GitSubject {
             action: action.as_str().to_string(),
         }
     }
-    
+
     /// Create a wildcard subject for subscriptions
     pub fn wildcard(message_type: MessageType) -> String {
         format!("{}.{}.>", DOMAIN, message_type)
     }
-    
+
     /// Create an aggregate-specific wildcard
     pub fn aggregate_wildcard(message_type: MessageType, aggregate: Aggregate) -> String {
         format!("{}.{}.{}.>", DOMAIN, message_type, aggregate)
@@ -336,7 +333,11 @@ impl GitSubject {
 
 impl fmt::Display for GitSubject {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{}.{}.{}", DOMAIN, self.message_type, self.aggregate, self.action)
+        write!(
+            f,
+            "{}.{}.{}.{}",
+            DOMAIN, self.message_type, self.aggregate, self.action
+        )
     }
 }
 
@@ -365,7 +366,7 @@ impl SubjectMapper {
             _ => None,
         }
     }
-    
+
     /// Map a command type to a subject
     pub fn command_subject(command_type: &str) -> Option<GitSubject> {
         match command_type {
@@ -384,7 +385,7 @@ impl SubjectMapper {
             _ => None,
         }
     }
-    
+
     /// Map a query type to a subject
     pub fn query_subject(query_type: &str) -> Option<GitSubject> {
         match query_type {

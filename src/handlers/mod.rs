@@ -9,12 +9,15 @@ mod cqrs_adapter;
 
 pub use cqrs_adapter::*;
 
-use crate::GitDomainError;
 use crate::aggregate::{Repository, RepositoryId};
-use crate::events::{GitDomainEvent, RepositoryAnalyzed, BranchCreated, CommitAnalyzed, FileChangeInfo, FileChangeType};
-use crate::value_objects::{BranchName, CommitHash, AuthorInfo, FilePath};
+use crate::events::{
+    BranchCreated, CommitAnalyzed, FileChangeInfo, FileChangeType, GitDomainEvent,
+    RepositoryAnalyzed,
+};
+use crate::value_objects::{AuthorInfo, BranchName, CommitHash, FilePath};
+use crate::GitDomainError;
 use chrono::{DateTime, Utc};
-use git2::{Oid, Repository as Git2Repository, Sort};
+use git2::{Repository as Git2Repository, Sort};
 use std::collections::HashMap;
 use std::path::Path;
 use tracing::{info, instrument, warn};
@@ -27,7 +30,8 @@ pub struct RepositoryCommandHandler {
 
 impl RepositoryCommandHandler {
     /// Create a new repository command handler
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self {
             repositories: std::sync::Mutex::new(HashMap::new()),
         }
@@ -114,9 +118,9 @@ impl RepositoryCommandHandler {
             GitDomainError::GitOperationFailed(format!("Failed to create revwalk: {e}"))
         })?;
 
-        revwalk.set_sorting(Sort::TIME).map_err(|e| {
-            GitDomainError::GitOperationFailed(format!("Failed to set sort: {e}"))
-        })?;
+        revwalk
+            .set_sorting(Sort::TIME)
+            .map_err(|e| GitDomainError::GitOperationFailed(format!("Failed to set sort: {e}")))?;
 
         // Start from HEAD
         if let Ok(head) = git_repo.head() {
@@ -154,7 +158,7 @@ impl RepositoryCommandHandler {
 
                     // Get files changed by comparing with parent
                     let mut files_changed = vec![];
-                    
+
                     if let Ok(parent) = commit.parent(0) {
                         // Get diff between parent and current commit
                         if let Ok(parent_tree) = parent.tree() {
@@ -175,10 +179,18 @@ impl RepositoryCommandHandler {
                                                             additions: 0, // Would need to parse diff for actual counts
                                                             deletions: 0,
                                                             change_type: match delta.status() {
-                                                                git2::Delta::Added => FileChangeType::Added,
-                                                                git2::Delta::Deleted => FileChangeType::Deleted,
-                                                                git2::Delta::Modified => FileChangeType::Modified,
-                                                                git2::Delta::Renamed => FileChangeType::Renamed,
+                                                                git2::Delta::Added => {
+                                                                    FileChangeType::Added
+                                                                }
+                                                                git2::Delta::Deleted => {
+                                                                    FileChangeType::Deleted
+                                                                }
+                                                                git2::Delta::Modified => {
+                                                                    FileChangeType::Modified
+                                                                }
+                                                                git2::Delta::Renamed => {
+                                                                    FileChangeType::Renamed
+                                                                }
                                                                 _ => FileChangeType::Modified,
                                                             },
                                                         });
@@ -241,7 +253,7 @@ impl RepositoryCommandHandler {
         Ok((repo_id, events))
     }
 
-    // TODO: Extract commit graph functionality has been removed
+    // Note: Extract commit graph functionality has been removed
     // This was dependent on cim_domain_graph which is no longer available
 
     /// Get repository by ID
@@ -266,7 +278,7 @@ impl Default for RepositoryCommandHandler {
     }
 }
 
-// TODO: Extract dependency graph functionality has been removed
+// Note: Extract dependency graph functionality has been removed
 // This was dependent on cim_domain_graph which is no longer available
 
 #[cfg(test)]

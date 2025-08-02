@@ -6,8 +6,8 @@
 //! dependency information based on programming language.
 
 use crate::GitDomainError;
-use std::collections::{HashMap, HashSet};
 use regex::Regex;
+use std::collections::{HashMap, HashSet};
 
 /// Represents a dependency found in a file
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,7 +60,8 @@ pub enum Language {
 
 impl Language {
     /// Detect language from file extension
-    #[must_use] pub fn from_extension(ext: &str) -> Self {
+    #[must_use]
+    pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
             "rs" => Language::Rust,
             "py" => Language::Python,
@@ -83,53 +84,105 @@ pub struct DependencyAnalyzer {
 
 impl DependencyAnalyzer {
     /// Create a new dependency analyzer
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         let mut patterns = HashMap::new();
-        
+
         // Rust patterns
-        patterns.insert(Language::Rust, vec![
-            (Regex::new(r"^\s*use\s+([a-zA-Z0-9_:]+)").unwrap(), DependencyType::Use),
-            (Regex::new(r"^\s*extern\s+crate\s+([a-zA-Z0-9_]+)").unwrap(), DependencyType::Import),
-        ]);
-        
+        patterns.insert(
+            Language::Rust,
+            vec![
+                (
+                    Regex::new(r"^\s*use\s+([a-zA-Z0-9_:]+)").unwrap(),
+                    DependencyType::Use,
+                ),
+                (
+                    Regex::new(r"^\s*extern\s+crate\s+([a-zA-Z0-9_]+)").unwrap(),
+                    DependencyType::Import,
+                ),
+            ],
+        );
+
         // Python patterns
-        patterns.insert(Language::Python, vec![
-            (Regex::new(r"^\s*import\s+([a-zA-Z0-9_.]+)").unwrap(), DependencyType::Import),
-            (Regex::new(r"^\s*from\s+([a-zA-Z0-9_.]+)\s+import").unwrap(), DependencyType::Import),
-        ]);
-        
+        patterns.insert(
+            Language::Python,
+            vec![
+                (
+                    Regex::new(r"^\s*import\s+([a-zA-Z0-9_.]+)").unwrap(),
+                    DependencyType::Import,
+                ),
+                (
+                    Regex::new(r"^\s*from\s+([a-zA-Z0-9_.]+)\s+import").unwrap(),
+                    DependencyType::Import,
+                ),
+            ],
+        );
+
         // JavaScript/TypeScript patterns
         let js_patterns = vec![
-            (Regex::new(r#"^\s*import\s+.*\s+from\s+['"]([^'"]+)['"]"#).unwrap(), DependencyType::Import),
-            (Regex::new(r#"^\s*const\s+.*\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)"#).unwrap(), DependencyType::Import),
-            (Regex::new(r#"^\s*import\s*\(\s*['"]([^'"]+)['"]\s*\)"#).unwrap(), DependencyType::Import),
+            (
+                Regex::new(r#"^\s*import\s+.*\s+from\s+['"]([^'"]+)['"]"#).unwrap(),
+                DependencyType::Import,
+            ),
+            (
+                Regex::new(r#"^\s*const\s+.*\s*=\s*require\s*\(\s*['"]([^'"]+)['"]\s*\)"#).unwrap(),
+                DependencyType::Import,
+            ),
+            (
+                Regex::new(r#"^\s*import\s*\(\s*['"]([^'"]+)['"]\s*\)"#).unwrap(),
+                DependencyType::Import,
+            ),
         ];
         patterns.insert(Language::JavaScript, js_patterns.clone());
         patterns.insert(Language::TypeScript, js_patterns);
-        
+
         // Java patterns
-        patterns.insert(Language::Java, vec![
-            (Regex::new(r"^\s*import\s+([a-zA-Z0-9_.]+);").unwrap(), DependencyType::Import),
-            (Regex::new(r"^\s*import\s+static\s+([a-zA-Z0-9_.]+);").unwrap(), DependencyType::Import),
-        ]);
-        
+        patterns.insert(
+            Language::Java,
+            vec![
+                (
+                    Regex::new(r"^\s*import\s+([a-zA-Z0-9_.]+);").unwrap(),
+                    DependencyType::Import,
+                ),
+                (
+                    Regex::new(r"^\s*import\s+static\s+([a-zA-Z0-9_.]+);").unwrap(),
+                    DependencyType::Import,
+                ),
+            ],
+        );
+
         // Go patterns
-        patterns.insert(Language::Go, vec![
-            (Regex::new(r#"^\s*import\s+"([^"]+)""#).unwrap(), DependencyType::Import),
-            (Regex::new(r"^\s*import\s+\(\s*").unwrap(), DependencyType::Import), // Multi-line imports need special handling
-        ]);
-        
+        patterns.insert(
+            Language::Go,
+            vec![
+                (
+                    Regex::new(r#"^\s*import\s+"([^"]+)""#).unwrap(),
+                    DependencyType::Import,
+                ),
+                (
+                    Regex::new(r"^\s*import\s+\(\s*").unwrap(),
+                    DependencyType::Import,
+                ), // Multi-line imports need special handling
+            ],
+        );
+
         // C/C++ patterns
         let c_patterns = vec![
-            (Regex::new(r"^\s*#include\s*<([^>]+)>").unwrap(), DependencyType::Include),
-            (Regex::new(r#"^\s*#include\s*"([^"]+)""#).unwrap(), DependencyType::Include),
+            (
+                Regex::new(r"^\s*#include\s*<([^>]+)>").unwrap(),
+                DependencyType::Include,
+            ),
+            (
+                Regex::new(r#"^\s*#include\s*"([^"]+)""#).unwrap(),
+                DependencyType::Include,
+            ),
         ];
         patterns.insert(Language::C, c_patterns.clone());
         patterns.insert(Language::Cpp, c_patterns);
-        
+
         Self { patterns }
     }
-    
+
     /// Analyze file content to extract dependencies
     pub fn analyze_file(
         &self,
@@ -137,15 +190,18 @@ impl DependencyAnalyzer {
         language: &Language,
     ) -> Result<HashSet<Dependency>, GitDomainError> {
         let mut dependencies = HashSet::new();
-        
+
         if let Some(language_patterns) = self.patterns.get(language) {
             for line in content.lines() {
                 // Skip comments (simple heuristic)
                 let trimmed = line.trim();
-                if trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("/*") {
+                if trimmed.starts_with("//")
+                    || trimmed.starts_with('#')
+                    || trimmed.starts_with("/*")
+                {
                     continue;
                 }
-                
+
                 for (pattern, dep_type) in language_patterns {
                     if let Some(captures) = pattern.captures(line) {
                         if let Some(dep_name) = captures.get(1) {
@@ -159,10 +215,10 @@ impl DependencyAnalyzer {
                 }
             }
         }
-        
+
         Ok(dependencies)
     }
-    
+
     /// Analyze package manifest files (Cargo.toml, package.json, etc.)
     pub fn analyze_manifest(
         &self,
@@ -170,13 +226,13 @@ impl DependencyAnalyzer {
         filename: &str,
     ) -> Result<HashSet<Dependency>, GitDomainError> {
         let mut dependencies = HashSet::new();
-        
+
         match filename {
             "Cargo.toml" => {
                 // Simple TOML parsing for dependencies
                 let deps_regex = Regex::new(r#"^\s*([a-zA-Z0-9_-]+)\s*=\s*"([^"]+)""#).unwrap();
                 let mut in_deps_section = false;
-                
+
                 for line in content.lines() {
                     if line.trim() == "[dependencies]" || line.trim() == "[dev-dependencies]" {
                         in_deps_section = true;
@@ -185,7 +241,7 @@ impl DependencyAnalyzer {
                     if line.trim().starts_with('[') {
                         in_deps_section = false;
                     }
-                    
+
                     if in_deps_section {
                         if let Some(captures) = deps_regex.captures(line) {
                             dependencies.insert(Dependency {
@@ -257,7 +313,7 @@ impl DependencyAnalyzer {
                 // Unknown manifest type
             }
         }
-        
+
         Ok(dependencies)
     }
 }
@@ -280,7 +336,7 @@ pub struct CacheStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_rust_dependencies() {
         let analyzer = DependencyAnalyzer::new();
@@ -293,7 +349,7 @@ fn main() {
     // use inside comment should not be detected
 }
 "#;
-        
+
         let deps = analyzer.analyze_file(content, &Language::Rust).unwrap();
         assert_eq!(deps.len(), 3);
         assert!(deps.contains(&Dependency {
@@ -302,7 +358,7 @@ fn main() {
             version: None,
         }));
     }
-    
+
     #[test]
     fn test_python_dependencies() {
         let analyzer = DependencyAnalyzer::new();
@@ -316,7 +372,7 @@ from typing import List, Dict
 def main():
     pass
 "#;
-        
+
         let deps = analyzer.analyze_file(content, &Language::Python).unwrap();
         assert_eq!(deps.len(), 4);
         assert!(deps.contains(&Dependency {
@@ -325,7 +381,7 @@ def main():
             version: None,
         }));
     }
-    
+
     #[test]
     fn test_cargo_toml_parsing() {
         let analyzer = DependencyAnalyzer::new();
@@ -340,7 +396,7 @@ tokio = "1.0"
 [dev-dependencies]
 criterion = "0.5"
 "#;
-        
+
         let deps = analyzer.analyze_manifest(content, "Cargo.toml").unwrap();
         assert_eq!(deps.len(), 3);
         assert!(deps.contains(&Dependency {
@@ -349,13 +405,16 @@ criterion = "0.5"
             version: Some("1.0".to_string()),
         }));
     }
-    
+
     #[test]
     fn test_language_detection() {
         assert_eq!(Language::from_extension("rs"), Language::Rust);
         assert_eq!(Language::from_extension("py"), Language::Python);
         assert_eq!(Language::from_extension("js"), Language::JavaScript);
         assert_eq!(Language::from_extension("java"), Language::Java);
-        assert_eq!(Language::from_extension("unknown"), Language::Other("unknown".to_string()));
+        assert_eq!(
+            Language::from_extension("unknown"),
+            Language::Other("unknown".to_string())
+        );
     }
-} 
+}

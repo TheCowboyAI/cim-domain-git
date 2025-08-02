@@ -59,16 +59,23 @@ chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.11", features = ["v4", "serde"] }
 
 # NATS dependencies
-async-nats = "0.33"
+async-nats = "0.42"
 futures = "0.3"
 tokio-stream = "0.1"
 bytes = "1.5"
+
+# Tracing dependencies (temporarily disabled due to system dependency issues)
+# opentelemetry = { version = "0.21", features = ["trace"] }
+# opentelemetry_sdk = { version = "0.21", features = ["trace", "rt-tokio"] }
+# opentelemetry-otlp = { version = "0.14", features = ["tonic", "trace"] }
+# opentelemetry-stdout = { version = "0.2", features = ["trace"] }
 
 # Collections
 indexmap = "2.7"
 
 # Pattern matching
 regex = "1.11"
+lazy_static = "1.5"
 
 [dev-dependencies]
 # Testing
@@ -93,3 +100,15 @@ advanced-analysis = []
 [[example]]
 name = "nats_integration_demo"
 path = "examples/nats_integration_demo.rs"
+
+[[example]]
+name = "jetstream_event_sourcing"
+path = "examples/jetstream_event_sourcing.rs"
+
+[[example]]
+name = "nats_complete_integration"
+path = "examples/nats_complete_integration.rs"
+
+# [[example]]
+# name = "distributed_tracing"
+# path = "examples/distributed_tracing.rs"

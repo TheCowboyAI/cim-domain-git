@@ -120,16 +120,16 @@
 #![allow(clippy::module_name_repetitions)]
 
 pub mod aggregate;
+pub mod cache;
 pub mod commands;
+pub mod dependency_analysis;
 pub mod events;
 pub mod handlers;
+pub mod nats;
 pub mod projections;
 pub mod queries;
 pub mod security;
 pub mod value_objects;
-pub mod dependency_analysis;
-pub mod cache;
-pub mod nats;
 
 // Re-export commonly used types
 pub use aggregate::{Repository, RepositoryId};
@@ -139,27 +139,21 @@ pub use value_objects::{AuthorInfo, BranchName, CommitHash};
 
 // Re-export projections
 pub use projections::{
-    RepositoryListProjection, RepositorySummary,
-    CommitHistoryProjection, CommitHistoryEntry,
-    BranchStatusProjection, BranchInfo,
-    FileChangeProjection, FileChange, FileStatistics,
-    ProjectionError,
+    BranchInfo, BranchStatusProjection, CommitHistoryEntry, CommitHistoryProjection, FileChange,
+    FileChangeProjection, FileStatistics, ProjectionError, RepositoryListProjection,
+    RepositorySummary,
 };
 
 // Re-export queries
 pub use queries::{
-    GitQueryHandler, QueryError,
-    GetRepositoryDetails, RepositoryDetailsResult,
-    GetCommitHistory, CommitHistoryResult,
-    GetBranchList, BranchListResult,
-    ListRepositories, ListRepositoriesResult,
+    BranchListResult, CommitHistoryResult, GetBranchList, GetCommitHistory, GetRepositoryDetails,
+    GitQueryHandler, ListRepositories, ListRepositoriesResult, QueryError, RepositoryDetailsResult,
 };
 
 // Re-export NATS types
 pub use nats::{
-    NatsClient, NatsConfig, NatsError,
-    EventPublisher, CommandSubscriber, EventSubscriber,
-    HealthService, ServiceDiscovery, ServiceInfo,
+    CommandSubscriber, EventPublisher, EventSubscriber, HealthService, NatsClient, NatsConfig,
+    NatsError, ServiceDiscovery, ServiceInfo,
 };
 
 /// Domain-specific errors for Git operations

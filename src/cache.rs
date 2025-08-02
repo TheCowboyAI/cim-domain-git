@@ -5,7 +5,7 @@
 //! Provides caching for expensive operations like repository analysis
 //! and commit analysis to improve performance.
 
-use crate::{RepositoryId, value_objects::CommitHash};
+use crate::{value_objects::CommitHash, RepositoryId};
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
@@ -64,12 +64,14 @@ pub struct CommitAnalysis {
 
 impl GitCache {
     /// Create a new cache with default TTL of 5 minutes
-    #[must_use] pub fn new() -> Self {
+    #[must_use]
+    pub fn new() -> Self {
         Self::with_ttl(Duration::from_secs(300))
     }
 
     /// Create a new cache with custom TTL
-    #[must_use] pub fn with_ttl(ttl: Duration) -> Self {
+    #[must_use]
+    pub fn with_ttl(ttl: Duration) -> Self {
         Self {
             repository_analysis: Arc::new(RwLock::new(HashMap::new())),
             commit_analysis: Arc::new(RwLock::new(HashMap::new())),
@@ -78,38 +80,35 @@ impl GitCache {
     }
 
     /// Get cached repository analysis
-    #[must_use] pub fn get_repository_analysis(
-        &self,
-        repo_id: &RepositoryId,
-    ) -> Option<RepositoryAnalysis> {
+    #[must_use]
+    pub fn get_repository_analysis(&self, repo_id: &RepositoryId) -> Option<RepositoryAnalysis> {
         let cache = self.repository_analysis.read().ok()?;
-        
-        cache.get(repo_id)
+
+        cache
+            .get(repo_id)
             .filter(|entry| !entry.is_expired())
             .map(|entry| entry.value.clone())
     }
 
     /// Cache repository analysis
-    pub fn cache_repository_analysis(
-        &self,
-        repo_id: RepositoryId,
-        analysis: RepositoryAnalysis,
-    ) {
+    pub fn cache_repository_analysis(&self, repo_id: RepositoryId, analysis: RepositoryAnalysis) {
         if let Ok(mut cache) = self.repository_analysis.write() {
             cache.insert(repo_id, CacheEntry::new(analysis, self.default_ttl));
         }
     }
 
     /// Get cached commit analysis
-    #[must_use] pub fn get_commit_analysis(
+    #[must_use]
+    pub fn get_commit_analysis(
         &self,
         repo_id: &RepositoryId,
         commit_hash: &CommitHash,
     ) -> Option<CommitAnalysis> {
         let key = (*repo_id, commit_hash.clone());
         let cache = self.commit_analysis.read().ok()?;
-        
-        cache.get(&key)
+
+        cache
+            .get(&key)
             .filter(|entry| !entry.is_expired())
             .map(|entry| entry.value.clone())
     }
@@ -148,13 +147,14 @@ impl GitCache {
     }
 
     /// Get cache statistics
-    #[must_use] pub fn stats(&self) -> CacheStats {
-        let repository_analysis_count = self.repository_analysis.read()
+    #[must_use]
+    pub fn stats(&self) -> CacheStats {
+        let repository_analysis_count = self
+            .repository_analysis
+            .read()
             .map(|c| c.len())
             .unwrap_or(0);
-        let commit_analysis_count = self.commit_analysis.read()
-            .map(|c| c.len())
-            .unwrap_or(0);
+        let commit_analysis_count = self.commit_analysis.read().map(|c| c.len()).unwrap_or(0);
 
         CacheStats {
             repository_analysis_entries: repository_analysis_count,
@@ -218,18 +218,25 @@ mod tests {
         assert_eq!(stats.commit_analysis_entries, 0);
 
         // Add repository analysis
-        cache.cache_repository_analysis(repo_id, RepositoryAnalysis {
-            branch_count: 3,
-            commit_count: 50,
-            size_bytes: 500_000,
-        });
+        cache.cache_repository_analysis(
+            repo_id,
+            RepositoryAnalysis {
+                branch_count: 3,
+                commit_count: 50,
+                size_bytes: 500_000,
+            },
+        );
 
         // Add commit analysis
-        cache.cache_commit_analysis(repo_id, commit_hash, CommitAnalysis {
-            files_changed: 10,
-            lines_added: 100,
-            lines_deleted: 50,
-        });
+        cache.cache_commit_analysis(
+            repo_id,
+            commit_hash,
+            CommitAnalysis {
+                files_changed: 10,
+                lines_added: 100,
+                lines_deleted: 50,
+            },
+        );
 
         // Check stats
         let stats = cache.stats();
