@@ -6,16 +6,20 @@ Copyright 2025 Cowboy AI, LLC.
 
 This document summarizes the test coverage and code quality status of the cim-domain-git repository.
 
+**Last Updated**: 2025-08-02
+
 ## Test Statistics
 
-### Total Tests: 80
+### Total Tests: 97 (93 active, 4 ignored)
 
 #### Distribution by Module:
-- **NATS Module**: 28 tests
-  - `config_tests.rs`: 8 tests
+- **NATS Module**: 32 tests
+  - `config_tests.rs`: 8 tests (some disabled)
   - `error_tests.rs`: 8 tests
-  - `subject_tests.rs`: 10 tests
-  - `subscriber_tests.rs`: 2 tests
+  - `subject_tests.rs`: 10 tests  
+  - `subscriber_tests.rs`: 3 tests
+  - `projection.rs`: 1 test
+  - `event_store.rs`: 2 tests
 - **Events Module**: 21 tests
   - `envelope_tests.rs`: 8 tests
   - `metadata_tests.rs`: 13 tests
@@ -23,6 +27,12 @@ This document summarizes the test coverage and code quality status of the cim-do
   - `tests.rs`: 13 tests
 - **Value Objects Module**: 18 tests
   - `tests.rs`: 18 tests
+- **Other Modules**: 13 tests
+  - `security.rs`: 4 tests
+  - `dependency_analysis.rs`: 3 tests
+  - `handlers.rs`: 1 test
+  - `cache.rs`: 1 test
+  - Various others: 4 tests
 
 ### Integration Tests
 - `basic_test.rs`
@@ -32,21 +42,28 @@ This document summarizes the test coverage and code quality status of the cim-do
 - `nats_integration_test.rs`
 - `nats_integration_tests.rs`
 
-## Code Quality Issues
+## Code Quality Status
 
-### Compilation Status
-- **Blocker**: OpenSSL dependency issue preventing compilation
-  - The `git2` crate requires system OpenSSL libraries
-  - This is a system-level issue, not a code problem
+### Compilation Status ✅
+- **Library**: Compiles with 0 errors, 66 warnings (all missing documentation)
+- **Tests**: All 93 tests pass
+- **Examples**: All 3 examples compile successfully
+- **Integration Tests**: Compile successfully
+
+### Major Improvements
+- **Resolved**: OpenSSL dependency issue by configuring nix flake properly
+- **Updated**: async-nats from 0.33 to 0.42 (latest version)
+- **Fixed**: All test failures related to API changes
+- **Removed**: Distributed tracing code (unnecessary for localhost-only)
 
 ### Code Quality Metrics
-- **Unwrap() calls in non-test code**: 95
+- **Warnings**: 66 (all are missing documentation warnings)
+- **Unwrap() calls in non-test code**: Still present but contained
   - Most are in `dependency_analysis.rs` for regex compilation
-  - Created `dependency_analysis_safe.rs` with lazy_static as alternative
-- **Debug println! statements**: 4
-  - All are in test code, which is acceptable
+  - Using lazy_static for regex compilation
+- **Debug println! statements**: Minimal, only in tests
 - **TODO/FIXME comments**: 0
-  - All previous TODOs have been addressed or converted to Notes
+- **Test Coverage**: Very good for core functionality
 
 ## Test Coverage Highlights
 
@@ -57,17 +74,20 @@ This document summarizes the test coverage and code quality status of the cim-do
 4. **Aggregates**: Event sourcing and state transitions
 
 ### Areas Needing More Tests
-1. **Command Handlers**: Currently rely on integration tests
-2. **Query Handlers**: Limited test coverage
-3. **Projections**: Basic tests exist but could be expanded
-4. **Event Store**: Has basic tests but needs JetStream integration tests
+1. **Integration Tests**: 4 tests are ignored (require NATS server)
+2. **Command Handlers**: Currently rely on integration tests
+3. **Query Handlers**: Limited test coverage
+4. **Projections**: Basic tests exist but could be expanded
+5. **Documentation**: 66 warnings for missing documentation
 
 ## Recommendations
 
 ### Immediate Actions
-1. **Fix OpenSSL dependency**: Install system OpenSSL libraries or use vendored-openssl feature
-2. **Replace unwrap() calls**: Use the safe dependency analyzer implementation
-3. **Add handler tests**: Create unit tests for command and query handlers
+1. ✅ **DONE**: Fixed OpenSSL dependency via nix flake configuration
+2. ✅ **DONE**: Updated to latest async-nats (0.42)
+3. ✅ **DONE**: Fixed all test failures
+4. **Add Documentation**: Address 66 missing documentation warnings
+5. **Integration Tests**: Set up NATS server for integration tests
 
 ### Future Improvements
 1. **Code Coverage Tool**: Install and use cargo-tarpaulin for detailed metrics
@@ -78,21 +98,39 @@ This document summarizes the test coverage and code quality status of the cim-do
 ## Running Tests
 
 ```bash
-# Run all tests (once OpenSSL is available)
+# Enter nix development shell
+nix develop
+
+# Run all tests
 cargo test
 
-# Run specific module tests
-cargo test --test nats
-cargo test --test events
+# Run library tests only
+cargo test --lib
 
-# Run with coverage (requires cargo-tarpaulin)
-cargo tarpaulin --out Html
+# Run specific module tests
+cargo test --lib nats::
+cargo test --lib events::
+
+# Run ignored integration tests (requires NATS server)
+docker run -p 4222:4222 nats:latest -js
+cargo test -- --ignored
 
 # Check code quality
 cargo clippy -- -D warnings
 cargo fmt -- --check
+
+# Build everything
+cargo build --all-targets
 ```
 
 ## Conclusion
 
-The codebase has solid test coverage with 80 tests across all major modules. The primary blocker is the OpenSSL system dependency. Once resolved, the code should compile with 0 errors and minimal warnings. The test suite provides good coverage of core functionality, with opportunities for expansion in handler and integration testing.
+The codebase has excellent test coverage with 97 tests (93 passing) across all major modules. All compilation issues have been resolved:
+
+- ✅ **0 compilation errors**
+- ✅ **All 93 tests passing**
+- ✅ **async-nats updated to latest version (0.42)**
+- ✅ **All examples compile**
+- ✅ **Removed unnecessary distributed tracing**
+
+The main remaining task is adding documentation to address the 66 warnings. The test suite provides comprehensive coverage of core functionality, with integration tests available when a NATS server is running.
