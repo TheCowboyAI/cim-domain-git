@@ -8,13 +8,13 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use cim_domain_git::{
-    aggregate::{Repository, RepositoryId},
+    aggregate::RepositoryId,
     commands::CloneRepository,
     events::{EventEnvelope, GitDomainEvent, RepositoryCloned},
     nats::{
         AckSubscriber, CommandHandler, CommandSubscriber, EventHandler, EventPublisher, EventStore,
-        EventStoreConfig, EventSubscriber, HealthService, NatsClient, NatsConfig,
-        ProjectionManager, RepositoryStatsProjection, ServiceInfo, ServiceStatus,
+        EventStoreConfig, HealthService, NatsClient, NatsConfig,
+        ServiceInfo, ServiceStatus,
     },
     value_objects::RemoteUrl,
 };
@@ -93,6 +93,16 @@ async fn setup_nats() -> cim_domain_git::nats::Result<NatsClient> {
     NatsClient::connect(config).await
 }
 
+// Helper to create unique stream names
+fn unique_stream_name(prefix: &str) -> String {
+    format!("{}_{}_{}",
+        prefix,
+        std::process::id(),
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
+    )
+}
+
+
 #[tokio::test]
 #[ignore = "requires NATS server"]
 async fn test_event_store_append_and_replay() {
@@ -103,12 +113,31 @@ async fn test_event_store_append_and_replay() {
         "git".to_string(),
     );
 
-    let jetstream = client.jetstream().await.expect("Failed to get JetStream context");
+    // Get JetStream context directly without creating default streams
+    let jetstream = async_nats::jetstream::new(client.client().clone());
+    let stream_name = unique_stream_name("TEST_GIT_EVENTS");
+    
+    // Try to delete any existing stream with this name first
+    let _ = jetstream.delete_stream(&stream_name).await;
+    
+    // Also check for and delete any streams that might have "git.event.>" subjects
+    // This is a workaround for the test environment
+    {
+        use futures::StreamExt;
+        let mut streams = jetstream.streams();
+        while let Some(Ok(info)) = streams.next().await {
+            if info.config.subjects.iter().any(|s| s == "git.event.>") {
+                println!("Deleting conflicting stream: {}", info.config.name);
+                let _ = jetstream.delete_stream(&info.config.name).await;
+            }
+        }
+    }
+    
     let mut event_store = EventStore::new(
-        jetstream,
+        jetstream.clone(),
         publisher,
         EventStoreConfig {
-            stream_name: format!("TEST_GIT_EVENTS_{}", Uuid::new_v4().to_string().replace("-", "")),
+            stream_name: stream_name.clone(),
             ..Default::default()
         },
     )
@@ -144,10 +173,14 @@ async fn test_event_store_append_and_replay() {
 
     // Verify sequences are increasing
     assert_eq!(sequences.len(), 2);
+    println!("Sequences: {:?}", sequences);
     assert!(sequences[1] > sequences[0], "Sequences should be increasing");
     
     // In production, replay is done differently - this test verifies append works
     println!("Successfully appended {} events to JetStream", events.len());
+    
+    // Clean up
+    let _ = jetstream.delete_stream(&stream_name).await;
 }
 
 #[tokio::test]
@@ -244,12 +277,15 @@ async fn test_projection_updates() {
         "git".to_string(),
     );
 
-    let jetstream = client.jetstream().await.expect("Failed to get JetStream context");
+    // Get JetStream context directly without creating default streams
+    let jetstream = async_nats::jetstream::new(client.client().clone());
+    let stream_name = unique_stream_name("TEST_GIT_EVENTS_PROJ");
+    
     let mut event_store = EventStore::new(
-        jetstream,
+        jetstream.clone(),
         publisher,
         EventStoreConfig {
-            stream_name: format!("TEST_GIT_EVENTS_{}", Uuid::new_v4().to_string().replace("-", "")),
+            stream_name: stream_name.clone(),
             ..Default::default()
         },
     )
@@ -286,6 +322,9 @@ async fn test_projection_updates() {
     sleep(Duration::from_secs(2)).await;
 
     // Test passes if events were appended successfully
+    
+    // Clean up
+    let _ = jetstream.delete_stream(&stream_name).await;
 }
 
 #[tokio::test]
@@ -348,12 +387,15 @@ async fn test_correlation_tracking() {
         "git".to_string(),
     );
 
-    let jetstream = client.jetstream().await.expect("Failed to get JetStream context");
+    // Get JetStream context directly without creating default streams
+    let jetstream = async_nats::jetstream::new(client.client().clone());
+    let stream_name = unique_stream_name("TEST_GIT_EVENTS_CORR");
+    
     let mut event_store = EventStore::new(
-        jetstream,
+        jetstream.clone(),
         publisher,
         EventStoreConfig {
-            stream_name: format!("TEST_GIT_EVENTS_{}", Uuid::new_v4().to_string().replace("-", "")),
+            stream_name: stream_name.clone(),
             ..Default::default()
         },
     )
@@ -394,4 +436,7 @@ async fn test_correlation_tracking() {
     assert_eq!(envelope2.causation_id(), envelope1.event_id());
     
     println!("Successfully appended correlated events with correlation_id: {}", correlation_id);
+    
+    // Clean up
+    let _ = jetstream.delete_stream(&stream_name).await;
 }

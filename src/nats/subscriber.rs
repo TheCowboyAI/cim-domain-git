@@ -178,9 +178,9 @@ impl CommandSubscriber {
         let handlers = handlers.read().await;
         let mut found_handler = false;
 
+        #[allow(unused_assignments)]
         for handler in handlers.iter() {
             if handler.command_type() == command_type {
-                #[allow(unused_assignments)]
                 found_handler = true;
 
                 // Execute with tracking
