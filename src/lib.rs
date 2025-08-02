@@ -120,6 +120,7 @@
 #![allow(clippy::module_name_repetitions)]
 
 pub mod aggregate;
+pub mod analyzers;
 pub mod cache;
 pub mod commands;
 pub mod dependency_analysis;

@@ -1,6 +1,6 @@
 [package]
 name = "cim-domain-git"
-version = "0.3.0"
+version = "0.5.0"
 edition = "2021"
 authors = ["Cowboy AI, LLC <dev@thecowboy.ai>"]
 description = "Git domain module for CIM - comprehensive Git repository introspection and analysis"

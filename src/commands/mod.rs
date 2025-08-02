@@ -5,6 +5,10 @@
 //! Commands represent intentions to change the state of the Git domain.
 //! They are validated and processed by command handlers.
 
+mod analyze_for_graphs;
+
+pub use analyze_for_graphs::{AnalyzeForGraphs, FileMetricsInput, RepositoryHealthMetrics};
+
 use crate::aggregate::{Repository, RepositoryId};
 use crate::value_objects::{BranchName, CommitHash, FilePath, RemoteUrl, TagName};
 use cim_domain::{Command, EntityId};

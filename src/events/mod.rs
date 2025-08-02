@@ -5,6 +5,8 @@
 //! Events represent facts that have occurred in the Git domain.
 //! All events are immutable and represent past occurrences.
 
+pub mod collaboration_events;
+pub mod code_quality_events;
 pub mod envelope;
 pub mod metadata;
 

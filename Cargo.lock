@@ -470,7 +470,7 @@ dependencies = [
 
 [[package]]
 name = "cim-domain-git"
-version = "0.3.0"
+version = "0.5.0"
 dependencies = [
  "anyhow",
  "async-nats 0.42.0",

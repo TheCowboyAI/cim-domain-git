@@ -5,6 +5,7 @@
 //! This module contains the implementation of command handlers
 //! that process commands and generate events.
 
+pub mod commands;
 mod cqrs_adapter;
 
 pub use cqrs_adapter::*;
