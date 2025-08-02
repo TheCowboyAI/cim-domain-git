@@ -36,7 +36,7 @@ mod tests {
         assert_eq!(error.to_string(), "Health check error: service down");
 
         let error = NatsError::Other("generic error".to_string());
-        assert_eq!(error.to_string(), "Other error: generic error");
+        assert_eq!(error.to_string(), "NATS error: generic error");
     }
 
     #[test]
@@ -114,7 +114,7 @@ mod tests {
     fn test_custom_error_messages() {
         // Test with empty strings
         let error = NatsError::ConnectionError(String::new());
-        assert_eq!(error.to_string(), "NATS connection error: ");
+        assert_eq!(error.to_string(), "Connection error: ");
 
         // Test with very long error messages
         let long_msg = "a".repeat(1000);

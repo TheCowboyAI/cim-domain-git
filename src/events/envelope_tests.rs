@@ -110,7 +110,7 @@ mod tests {
             GitDomainEvent::BranchDeleted(BranchDeleted {
                 repository_id: repo_id,
                 branch_name: crate::value_objects::BranchName::new("feature/old").unwrap(),
-                last_commit: crate::value_objects::CommitHash::new("def456").unwrap(),
+                last_commit: crate::value_objects::CommitHash::new("def456a").unwrap(),
                 timestamp: Utc::now(),
             }),
             GitDomainEvent::TagCreated(TagCreated {
@@ -134,10 +134,10 @@ mod tests {
             }),
             GitDomainEvent::MergeDetected(MergeDetected {
                 repository_id: repo_id,
-                merge_commit: crate::value_objects::CommitHash::new("merge123").unwrap(),
+                merge_commit: crate::value_objects::CommitHash::new("123abc4").unwrap(),
                 parents: vec![
-                    crate::value_objects::CommitHash::new("parent1").unwrap(),
-                    crate::value_objects::CommitHash::new("parent2").unwrap(),
+                    crate::value_objects::CommitHash::new("1234567").unwrap(),
+                    crate::value_objects::CommitHash::new("abcdef0").unwrap(),
                 ],
                 branches: vec![],
                 merge_strategy: Some("recursive".to_string()),

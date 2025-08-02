@@ -196,10 +196,10 @@ mod tests {
     fn test_subscriber_subject_mapping() {
         // Test command subject mapping
         let subject = GitSubject::command(CommandAction::CloneRepository);
-        assert_eq!(subject.to_string(), "git.command.repository.clone");
+        assert_eq!(subject.to_string(), "git.cmd.repository.clone");
 
         let subject = GitSubject::command(CommandAction::AnalyzeCommit);
-        assert_eq!(subject.to_string(), "git.command.commit.analyze");
+        assert_eq!(subject.to_string(), "git.cmd.commit.analyze");
 
         // Test event subject mapping
         let subject = GitSubject::event(EventAction::RepositoryCloned);

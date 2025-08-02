@@ -75,6 +75,16 @@ pub fn validate_remote_url(url: &str) -> Result<(), GitDomainError> {
             "URL must use a valid Git protocol or be a valid path".to_string(),
         ));
     }
+    
+    // Additional check for file:// URLs - reject sensitive paths
+    if url.starts_with("file://") {
+        let path = &url[7..]; // Skip "file://"
+        if path.contains("/etc/") || path.contains("/usr/") || path.contains("/var/") {
+            return Err(GitDomainError::ValidationError(
+                "File URL points to sensitive system location".to_string(),
+            ));
+        }
+    }
 
     Ok(())
 }
@@ -111,6 +121,12 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
     if name.starts_with('.') {
         return Err(GitDomainError::ValidationError(
             "Branch name cannot start with dot".to_string(),
+        ));
+    }
+    
+    if name.starts_with('/') {
+        return Err(GitDomainError::ValidationError(
+            "Branch name cannot start with slash".to_string(),
         ));
     }
     

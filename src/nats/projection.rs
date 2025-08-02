@@ -392,7 +392,7 @@ mod tests {
         // Create test event
         let event = GitDomainEvent::CommitAnalyzed(CommitAnalyzed {
             repository_id: repo_id,
-            commit_hash: CommitHash::new("abc123").unwrap(),
+            commit_hash: CommitHash::new("abc123d").unwrap(),
             parents: vec![],
             author: AuthorInfo {
                 name: "Test Author".to_string(),
