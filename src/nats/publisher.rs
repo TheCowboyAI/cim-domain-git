@@ -8,12 +8,10 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use tracing::{debug, info};
 use uuid::Uuid;
-// use opentelemetry::trace::{Span, Status, TraceContextExt};
 
 use super::{
     error::{NatsError, Result},
     subject::{EventAction, GitSubject, SubjectMapper},
-    // tracing::TracingManager,
 };
 use crate::aggregate::RepositoryId;
 use crate::events::{EventEnvelope, GitDomainEvent};
@@ -46,8 +44,6 @@ pub struct EventPublisher {
 
     /// Subject prefix (usually "git")
     subject_prefix: String,
-    // /// Optional tracing manager
-    // tracing: Option<Arc<TracingManager>>,
 }
 
 impl EventPublisher {
@@ -56,18 +52,8 @@ impl EventPublisher {
         Self {
             client,
             subject_prefix,
-            // tracing: None,
         }
     }
-
-    // /// Create a new event publisher with tracing
-    // pub fn with_tracing(client: Client, subject_prefix: String, tracing: Arc<TracingManager>) -> Self {
-    //     Self {
-    //         client,
-    //         subject_prefix,
-    //         tracing: Some(tracing),
-    //     }
-    // }
 
     /// Publish a domain event
     pub async fn publish_event(&self, event: &GitDomainEvent) -> Result<()> {
@@ -174,9 +160,6 @@ impl EventPublisher {
     pub async fn publish_envelope(&self, envelope: &EventEnvelope) -> Result<()> {
         let event_type = envelope.event_type();
 
-        // Tracing temporarily disabled due to OpenSSL dependency
-        // let span = self.tracing.as_ref().map(|t| t.event_span(event_type, envelope.event_id()));
-
         // Map to NATS subject
         let subject = SubjectMapper::event_subject(event_type).ok_or_else(|| {
             NatsError::InvalidSubject(format!("Unknown event type: {}", event_type))
@@ -203,14 +186,6 @@ impl EventPublisher {
             headers.insert("X-User-ID", user_id.clone());
         }
 
-        // Tracing temporarily disabled
-        // if let Some(ref tracing) = self.tracing {
-        //     if let Some(ref span) = span {
-        //         let context = opentelemetry::Context::current_with_span(span.clone());
-        //         tracing.inject_context(&context, &mut headers);
-        //     }
-        // }
-
         // Serialize the entire envelope
         let payload = serde_json::to_vec(&envelope)
             .map_err(|e| NatsError::SerializationError(e.to_string()))?;
@@ -221,28 +196,6 @@ impl EventPublisher {
             .publish_with_headers(subject_str.clone(), headers, Bytes::from(payload))
             .await
             .map_err(|e| NatsError::PublishError(e.to_string()));
-
-        // Tracing temporarily disabled
-        // if let Some(ref span) = span {
-        //     match &result {
-        //         Ok(_) => {
-        //             span.set_status(opentelemetry::trace::Status::ok("Event published"));
-        //             span.add_event(
-        //                 "event_published",
-        //                 vec![
-        //                     opentelemetry::KeyValue::new("subject", subject_str),
-        //                     opentelemetry::KeyValue::new("event_id", envelope.event_id().to_string()),
-        //                 ],
-        //             );
-        //         }
-        //         Err(e) => {
-        //             if let Some(ref tracing) = self.tracing {
-        //                 tracing.record_error(span, e);
-        //             }
-        //         }
-        //     }
-        //     span.end();
-        // }
 
         if result.is_ok() {
             info!(

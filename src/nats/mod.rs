@@ -15,7 +15,6 @@ pub mod projection;
 pub mod publisher;
 pub mod subject;
 pub mod subscriber;
-// pub mod tracing; // Temporarily disabled due to OpenSSL dependency
 
 #[cfg(test)]
 mod subject_tests;
