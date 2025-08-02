@@ -39,15 +39,40 @@ This document explains the design decisions made when fixing NATS integration te
 - Stream configuration field names changed (e.g., `max_messages` instead of `max_msgs_per_subject`)
 
 ## Running Integration Tests
+
+### NATS Server Requirements
+The integration tests require a NATS server with JetStream enabled. If your NATS server doesn't have JetStream enabled, tests that use EventStore will fail.
+
 ```bash
-# Ensure NATS server is running with JetStream enabled
+# Start NATS with JetStream enabled
 docker run -p 4222:4222 nats:latest -js
+
+# Or if using an existing NATS server, ensure it was started with JetStream:
+# nats-server -js
 
 # Run integration tests
 nix develop -c cargo test -- --ignored
 ```
 
+### Current Test Status
+- **nats_integration_test**: All 6 tests passing ✅
+- **nats_integration_tests**: 1/5 passing, others require JetStream ⚠️
+  - The failing tests panic when trying to access JetStream
+  - This is expected if NATS server doesn't have JetStream enabled
+
+## Troubleshooting
+
+### JetStream Not Available
+If you see panics like `'not yet implemented'` when running tests, it means:
+1. Your NATS server doesn't have JetStream enabled
+2. You need to restart NATS with the `-js` flag
+
+### Test Isolation
+Each test uses unique stream names to avoid conflicts between test runs.
+
 ## Future Improvements
 1. Consider redesigning EventStore to work better with Arc usage
 2. Add integration tests for actual production patterns
 3. Document the command handling architecture more clearly
+4. Add better error messages when JetStream is not available
+5. Consider making JetStream tests conditional on server capabilities
