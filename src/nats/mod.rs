@@ -32,7 +32,7 @@ pub use command_ack::{AckPublisher, AckStatus, AckSubscriber, CommandAck, Comman
 pub use config::{NatsAuth, NatsConfig, NatsTls};
 pub use error::{NatsError, Result};
 pub use event_store::{ConsumerPosition, EventStore, EventStoreConfig, StreamInfo};
-pub use health::{HealthService, ServiceDiscovery, ServiceInfo};
+pub use health::{HealthService, ServiceDiscovery, ServiceInfo, ServiceStatus};
 pub use projection::{Projection, ProjectionManager, ProjectionStatus, RepositoryStatsProjection};
 pub use publisher::{EventPublisher, EventPublishing};
 pub use subject::{Aggregate, CommandAction, EventAction, GitSubject, QueryAction, SubjectMapper};

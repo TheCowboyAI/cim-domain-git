@@ -48,7 +48,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     publish_example_events(&publisher).await?;
 
     // Set up command subscriber
-    let command_subscriber = CommandSubscriber::new(client.client().clone());
+    let command_subscriber = CommandSubscriber::new(
+        client.client().clone(),
+        "demo-handler".to_string(),
+    );
 
     // Register a command handler
     command_subscriber
@@ -152,7 +155,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Shutting down...");
 
     // Clean up
-    client.drain().await?;
+    client.close().await?;
 
     Ok(())
 }

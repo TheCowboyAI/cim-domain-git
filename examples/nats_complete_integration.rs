@@ -9,13 +9,12 @@
 use async_trait::async_trait;
 use chrono::Utc;
 use cim_domain_git::{
-    aggregate::{Repository, RepositoryId},
-    commands::{AnalyzeCommit, CloneRepository},
+    aggregate::RepositoryId,
+    commands::CloneRepository,
     events::{CommitAnalyzed, EventEnvelope, GitDomainEvent, RepositoryCloned},
     nats::{
-        AckSubscriber, CommandAck, CommandHandler, CommandSubscriber, EventHandler, EventPublisher,
-        EventStore, EventStoreConfig, EventSubscriber, HealthService, NatsClient, NatsConfig,
-        ProjectionManager, RepositoryStatsProjection, ServiceInfo,
+        AckSubscriber, CommandHandler, CommandSubscriber, EventHandler, EventPublisher,
+        EventStore, EventStoreConfig, EventSubscriber, HealthService, NatsClient, NatsConfig, ServiceInfo,
     },
     value_objects::{AuthorInfo, CommitHash, RemoteUrl},
 };
@@ -106,24 +105,23 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Create event store and publisher
     let event_publisher = Arc::new(EventPublisher::new(
-        client.client.clone(),
+        client.client().clone(),
         "git".to_string(),
     ));
 
-    let event_store = Arc::new(
-        EventStore::new(
-            client.jetstream.clone(),
-            event_publisher.clone(),
-            EventStoreConfig::default(),
-        )
-        .await?,
-    );
+    let jetstream = client.jetstream().await?;
+    let mut event_store = EventStore::new(
+        jetstream,
+        EventPublisher::new(client.client().clone(), "git".to_string()),
+        EventStoreConfig::default(),
+    )
+    .await?;
 
     // Step 1: Set up command subscriber with acknowledgment
     info!("\n=== Setting up Command Processing ===");
 
     let command_subscriber =
-        CommandSubscriber::new(client.client.clone(), "demo-handler-001".to_string());
+        CommandSubscriber::new(client.client().clone(), "demo-handler-001".to_string());
 
     let clone_handler = CloneRepositoryHandler {
         event_publisher: event_publisher.clone(),
@@ -142,7 +140,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Step 2: Set up event subscriber
     info!("\n=== Setting up Event Processing ===");
 
-    let event_subscriber = EventSubscriber::new(client.client.clone());
+    let event_subscriber = EventSubscriber::new(client.client().clone());
     event_subscriber
         .register_handler(RepositoryEventLogger)
         .await;
@@ -158,26 +156,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // Step 3: Set up projections
     info!("\n=== Setting up Projections ===");
 
-    let projection_manager =
-        ProjectionManager::new(event_store.clone(), "demo_projections".to_string());
-
-    let stats_projection = Box::new(RepositoryStatsProjection::new(
-        "repository_stats".to_string(),
-    ));
-
-    projection_manager.register(stats_projection).await?;
-    projection_manager.start_all().await?;
+    // NOTE: ProjectionManager requires Arc<EventStore> but append requires &mut
+    // For this example, we skip projections to demonstrate other features
+    info!("Skipping projections for this example");
 
     // Step 4: Set up health monitoring
     info!("\n=== Setting up Health Monitoring ===");
 
     let health_service = HealthService::new(
-        client.client.clone(),
+        client.client().clone(),
         ServiceInfo {
+            id: Uuid::new_v4().to_string(),
             name: "git-domain-demo".to_string(),
             version: "0.1.0".to_string(),
-            instance_id: Uuid::new_v4().to_string(),
+            description: Some("Git Domain Demo Service".to_string()),
+            endpoints: vec!["git.>".to_string()],
             metadata: Default::default(),
+            last_heartbeat: Utc::now(),
+            status: cim_domain_git::nats::ServiceStatus::Healthy,
         },
     );
 
@@ -196,13 +192,15 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let command_id = Uuid::new_v4();
     let command = CloneRepository {
+        repository_id: Some(RepositoryId::new()),
         remote_url: RemoteUrl::new("https://github.com/example/demo.git")?,
         local_path: "/tmp/demo-repo".to_string(),
         branch: None,
+        depth: None,
     };
 
     // Set up acknowledgment tracking
-    let ack_subscriber = AckSubscriber::new(client.client.clone());
+    let ack_subscriber = AckSubscriber::new(client.client().clone());
 
     // Send command with ID in headers
     let mut headers = async_nats::HeaderMap::new();
@@ -224,7 +222,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Publish command
     client
-        .client
+        .client()
         .publish_with_headers("git.cmd.repository.clone", headers, payload.into())
         .await?;
 
@@ -287,14 +285,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Step 7: Check projection status
     info!("\n=== Projection Status ===");
-
-    let status = projection_manager.status().await;
-    for (name, proj_status) in status {
-        info!(
-            "Projection '{}': position = {:?}, running = {}",
-            name, proj_status.position, proj_status.is_running
-        );
-    }
+    info!("Skipped - projections not running in this example");
 
     // Step 8: Query projection data
     info!("\n=== Repository Statistics ===");

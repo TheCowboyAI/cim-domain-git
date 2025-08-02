@@ -58,6 +58,13 @@ impl CommitHash {
                 "Commit hash too short".to_string(),
             ));
         }
+        
+        // Maximum length is 40 for SHA-1
+        if hash.len() > 40 {
+            return Err(crate::GitDomainError::InvalidCommitHash(
+                "Commit hash too long (max 40 characters)".to_string(),
+            ));
+        }
 
         Ok(Self(hash.to_lowercase()))
     }
@@ -299,6 +306,24 @@ impl TagName {
                 "Tag name cannot be empty".to_string(),
             ));
         }
+        
+        // Tag names have similar restrictions to branch names
+        // Check for invalid characters
+        let invalid_chars = [' ', '~', '^', ':', '?', '*', '[', '\\'];
+        for ch in invalid_chars {
+            if name.contains(ch) {
+                return Err(crate::GitDomainError::GitOperationFailed(format!(
+                    "Tag name contains invalid character: {ch}"
+                )));
+            }
+        }
+        
+        // Check for patterns
+        if name.starts_with('.') {
+            return Err(crate::GitDomainError::GitOperationFailed(
+                "Tag name cannot start with dot".to_string(),
+            ));
+        }
 
         Ok(Self(name))
     }
@@ -371,6 +396,31 @@ impl FilePath {
 
         // Security validation to prevent path traversal
         let validated_path = crate::security::validate_path(&path)?;
+
+        // Git-specific path validation
+        if path.starts_with('/') {
+            return Err(crate::GitDomainError::GitOperationFailed(
+                "Absolute paths are not allowed in Git repositories".to_string(),
+            ));
+        }
+        
+        if path.starts_with("./") || path.contains("/./") {
+            return Err(crate::GitDomainError::GitOperationFailed(
+                "Path contains current directory references".to_string(),
+            ));
+        }
+        
+        if path.contains("//") {
+            return Err(crate::GitDomainError::GitOperationFailed(
+                "Path contains double slashes".to_string(),
+            ));
+        }
+        
+        if path.ends_with('/') {
+            return Err(crate::GitDomainError::GitOperationFailed(
+                "Path cannot end with a slash".to_string(),
+            ));
+        }
 
         // Normalize path separators
         let normalized = validated_path.to_string_lossy().replace('\\', "/");
@@ -455,7 +505,12 @@ impl CommitMessage {
     /// Get the summary line (first line)
     #[must_use]
     pub fn summary(&self) -> &str {
-        self.0.lines().next().unwrap_or(&self.0)
+        let first_line = self.0.lines().next().unwrap_or(&self.0);
+        if first_line.len() > 72 {
+            &first_line[..72]
+        } else {
+            first_line
+        }
     }
     
     /// Get the body (everything after the first line)

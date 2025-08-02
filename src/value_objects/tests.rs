@@ -230,8 +230,8 @@ mod tests {
         let url = RemoteUrl::new("https://github.com/user/repo.git").unwrap();
         assert_eq!(url.to_string(), "https://github.com/user/repo.git");
         
-        let hash = CommitHash::new("abc123").unwrap();
-        assert_eq!(hash.to_string(), "abc123");
+        let hash = CommitHash::new("abc123d").unwrap();
+        assert_eq!(hash.to_string(), "abc123d");
         
         let branch = BranchName::new("main").unwrap();
         assert_eq!(branch.to_string(), "main");

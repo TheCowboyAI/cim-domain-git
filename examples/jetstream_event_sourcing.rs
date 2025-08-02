@@ -11,18 +11,15 @@
 use chrono::Utc;
 use cim_domain_git::{
     aggregate::{Repository, RepositoryId},
-    commands::{AnalyzeCommit, CloneRepository},
     events::{CommitAnalyzed, EventEnvelope, GitDomainEvent, RepositoryCloned},
-    handlers::commands::CloneRepositoryHandler,
     nats::{
-        ConsumerPosition, EventPublisher, EventStore, EventStoreConfig, NatsClient, NatsConfig,
+        EventPublisher, EventStore, EventStoreConfig, NatsClient, NatsConfig,
     },
-    value_objects::{AuthorInfo, CommitHash, FilePath, RemoteUrl},
+    value_objects::{AuthorInfo, CommitHash, RemoteUrl},
 };
 use futures::StreamExt;
 use std::error::Error;
-use tracing::{error, info};
-use uuid::Uuid;
+use tracing::info;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
@@ -39,9 +36,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Connected to NATS with JetStream");
 
     // Create event store (JetStream wrapper)
-    let publisher = EventPublisher::new(client.client.clone(), "git".to_string());
-    let event_store = EventStore::new(
-        client.jetstream.clone(),
+    let publisher = EventPublisher::new(client.client().clone(), "git".to_string());
+    let mut event_store = EventStore::new(
+        client.jetstream().await?,
         publisher,
         EventStoreConfig::default(),
     )
@@ -94,7 +91,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     info!("Loaded {} events for repository {}", events.len(), repo_id);
 
     // Rebuild aggregate from events
-    let mut repository = Repository::new(repo_id);
+    let repository = Repository::new("example-repo".to_string());
     for envelope in &events {
         match &envelope.event {
             GitDomainEvent::RepositoryCloned(e) => {
@@ -128,14 +125,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
     while processed_count < 2 {
         if let Some(Ok(message)) = messages.next().await {
             if let Ok(envelope) = serde_json::from_slice::<EventEnvelope>(&message.payload) {
-                info!(
-                    "Processing event {} (seq: {})",
-                    envelope.event_type(),
-                    message.info()?.stream_sequence
-                );
+                if let Ok(info) = message.info() {
+                    info!(
+                        "Processing event {} (seq: {})",
+                        envelope.event_type(),
+                        info.stream_sequence
+                    );
+                }
 
                 // Acknowledge the message
-                message.ack().await?;
+                if let Err(e) = message.ack().await {
+                    eprintln!("Failed to ack message: {}", e);
+                }
                 processed_count += 1;
 
                 // In a real projection, you would update read models here

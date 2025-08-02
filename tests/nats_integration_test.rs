@@ -31,7 +31,7 @@ async fn test_nats_connection() {
     client.flush().await.unwrap();
 
     // Test graceful shutdown
-    client.drain().await.unwrap();
+    client.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -55,7 +55,7 @@ async fn test_event_publishing() {
     publisher.publish_event(&event).await.unwrap();
 
     // Clean up
-    client.drain().await.unwrap();
+    client.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -101,7 +101,7 @@ async fn test_event_subscription() {
 
     // Clean up
     handle.abort();
-    client.drain().await.unwrap();
+    client.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -111,7 +111,7 @@ async fn test_command_handling() {
     let client = NatsClient::connect(config).await.unwrap();
 
     // Set up command subscriber
-    let subscriber = CommandSubscriber::new(client.client().clone());
+    let subscriber = CommandSubscriber::new(client.client().clone(), "test-handler-001".to_string());
     subscriber.register_handler(TestCommandHandler).await;
 
     // Start subscriber in background
@@ -148,7 +148,7 @@ async fn test_command_handling() {
 
     // Clean up
     handle.abort();
-    client.drain().await.unwrap();
+    client.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -178,7 +178,7 @@ async fn test_jetstream_integration() {
 
     // Clean up - delete test stream
     let _ = jetstream.delete_stream("TEST_GIT_EVENTS").await;
-    client.drain().await.unwrap();
+    client.close().await.unwrap();
 }
 
 #[tokio::test]
@@ -198,7 +198,7 @@ async fn test_subject_routing() {
 
     // Test wildcards
     assert_eq!(
-        GitSubject::wildcard(crate::nats::subject::MessageType::Event),
+        GitSubject::wildcard(MessageType::Event),
         "git.event.>"
     );
 }

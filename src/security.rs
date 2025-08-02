@@ -23,6 +23,7 @@ pub fn validate_path(path: &str) -> Result<PathBuf, GitDomainError> {
             "Path contains directory traversal patterns".to_string(),
         ));
     }
+    
 
     // Convert to PathBuf and canonicalize
     let path_buf = PathBuf::from(path);
@@ -65,9 +66,13 @@ pub fn validate_remote_url(url: &str) -> Result<(), GitDomainError> {
         && !url.starts_with("git://")
         && !url.starts_with("ssh://")
         && !url.starts_with("git@")
+        && !url.starts_with("file://")
+        && !url.starts_with('/')
+        && !url.starts_with("../")
+        && !url.starts_with("./")
     {
         return Err(GitDomainError::ValidationError(
-            "URL must use a valid Git protocol".to_string(),
+            "URL must use a valid Git protocol or be a valid path".to_string(),
         ));
     }
 
@@ -83,9 +88,10 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
         ));
     }
 
-    // Check for shell metacharacters
+    // Check for shell metacharacters and Git-specific invalid characters
     let dangerous_chars = [
         '$', '`', '|', ';', '&', '<', '>', '(', ')', '{', '}', '\n', '\r', ' ',
+        '~', '^', ':', '?', '*', '[', '\\',
     ];
     for ch in dangerous_chars {
         if name.contains(ch) {
@@ -99,6 +105,18 @@ pub fn validate_branch_name(name: &str) -> Result<(), GitDomainError> {
     if name.starts_with('-') {
         return Err(GitDomainError::ValidationError(
             "Branch name cannot start with hyphen".to_string(),
+        ));
+    }
+    
+    if name.starts_with('.') {
+        return Err(GitDomainError::ValidationError(
+            "Branch name cannot start with dot".to_string(),
+        ));
+    }
+    
+    if name == "@" {
+        return Err(GitDomainError::ValidationError(
+            "Branch name cannot be '@'".to_string(),
         ));
     }
 
