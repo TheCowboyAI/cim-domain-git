@@ -123,7 +123,7 @@ impl HealthService {
         let health_check_handle = self.start_health_endpoint();
 
         // Wait for both tasks
-        tokio::try_join!(heartbeat_handle, health_check_handle)
+        let (_heartbeat_result, _health_check_result) = tokio::try_join!(heartbeat_handle, health_check_handle)
             .map_err(|e| NatsError::Other(format!("Task join error: {}", e)))?;
 
         Ok(())

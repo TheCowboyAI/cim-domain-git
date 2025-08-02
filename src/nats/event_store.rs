@@ -57,9 +57,11 @@ impl Default for EventStoreConfig {
 /// - Consumer checkpoints for processing position
 /// - Subject-based filtering for aggregate events
 pub struct EventStore {
+    #[allow(dead_code)]
     jetstream: JetStreamContext,
     stream: Stream,
     publisher: EventPublisher,
+    #[allow(dead_code)]
     config: EventStoreConfig,
 }
 
@@ -161,7 +163,7 @@ impl EventStore {
         aggregate_id: &RepositoryId,
     ) -> Result<Vec<EventEnvelope>> {
         // Use ephemeral consumer to replay all events
-        let consumer_name = format!("aggregate_replay_{}", aggregate_id);
+        let _consumer_name = format!("aggregate_replay_{}", aggregate_id);
         let filter = format!("{}.event.>", super::subject::DOMAIN);
 
         // Create ephemeral consumer that starts from the beginning
