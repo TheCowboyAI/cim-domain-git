@@ -52,7 +52,7 @@ mod tests {
         }
 
         fn event_type(&self) -> &'static str {
-            "GitDomainEvent"
+            "RepositoryCloned"
         }
     }
 
@@ -88,7 +88,14 @@ mod tests {
 
         // Register handler and subscribe
         subscriber.register_handler(handler.clone()).await;
-        subscriber.start().await.unwrap();
+        
+        // Start subscriber in background
+        tokio::spawn(async move {
+            let _ = subscriber.start().await;
+        });
+        
+        // Give subscriber time to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         // Publish a test command
         let command = GitCommand::CloneRepository(CloneRepository {
@@ -127,7 +134,14 @@ mod tests {
 
         // Register handler and subscribe
         subscriber.register_handler(handler.clone()).await;
-        subscriber.start().await.unwrap();
+        
+        // Start subscriber in background
+        tokio::spawn(async move {
+            let _ = subscriber.start().await;
+        });
+        
+        // Give subscriber time to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         // Publish a test event
         let event = GitDomainEvent::RepositoryCloned(RepositoryCloned {
@@ -138,10 +152,15 @@ mod tests {
         });
 
         let subject = GitSubject::event(EventAction::RepositoryCloned);
+        
+        // Create headers with event type
+        let mut headers = async_nats::HeaderMap::new();
+        headers.insert("X-Event-Type", "RepositoryCloned");
+        
         let payload = serde_json::to_vec(&event).unwrap();
         
         client
-            .publish(subject.to_string(), payload.into())
+            .publish_with_headers(subject.to_string(), headers, payload.into())
             .await
             .unwrap();
 
@@ -166,7 +185,14 @@ mod tests {
 
         // Register handler and start subscriber
         subscriber.register_handler(handler).await;
-        subscriber.start().await.unwrap();
+        
+        // Start subscriber in background
+        tokio::spawn(async move {
+            let _ = subscriber.start().await;
+        });
+        
+        // Give subscriber time to start
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
         // Publish a test command that will fail
         let command = GitCommand::CloneRepository(CloneRepository {

@@ -99,15 +99,25 @@ impl EventStore {
             ..Default::default()
         };
 
-        match jetstream.get_or_create_stream(stream_config).await {
+        // Try to get existing stream first
+        match jetstream.get_stream(&config.stream_name).await {
             Ok(stream) => {
-                info!("Event store stream ready: {}", config.stream_name);
+                info!("Using existing event store stream: {}", config.stream_name);
                 Ok(stream)
             }
-            Err(e) => Err(NatsError::Other(format!(
-                "Failed to create event stream: {}",
-                e
-            ))),
+            Err(_) => {
+                // Stream doesn't exist, create it
+                match jetstream.create_stream(stream_config).await {
+                    Ok(stream) => {
+                        info!("Created new event store stream: {}", config.stream_name);
+                        Ok(stream)
+                    }
+                    Err(e) => Err(NatsError::Other(format!(
+                        "Failed to create event stream: {}",
+                        e
+                    ))),
+                }
+            }
         }
     }
 

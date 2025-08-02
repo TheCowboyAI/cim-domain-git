@@ -19,22 +19,10 @@ use cim_domain_git::{
     handlers::*,
     value_objects::{BranchName, CommitHash, FilePath, RemoteUrl, TagName},
 };
-use cim_subject::{CausationId, CorrelationId, IdType, MessageIdentity};
 
 /// Helper function to create a test command envelope
-fn create_test_envelope<T>(command: T) -> CommandEnvelope<T> {
-    let command_id = CommandId::new();
-    let id_uuid = *command_id.as_uuid();
-    CommandEnvelope {
-        id: command_id,
-        identity: MessageIdentity {
-            message_id: IdType::Uuid(id_uuid),
-            correlation_id: CorrelationId(IdType::Uuid(id_uuid)),
-            causation_id: CausationId(IdType::Uuid(id_uuid)),
-        },
-        command,
-        issued_by: "test-user".to_string(),
-    }
+fn create_test_envelope<T: cim_domain::Command>(command: T) -> CommandEnvelope<T> {
+    CommandEnvelope::new(command, "test-user".to_string())
 }
 
 // Graph-related handlers have been removed as the graph functionality was removed from the codebase
